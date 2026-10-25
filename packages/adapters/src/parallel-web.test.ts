@@ -51,7 +51,7 @@ describe("optional Parallel web provider", () => {
         ).toEqual({
           url: "https://example.test/page",
           title: "Large source",
-          text: `${text.slice(0, maxChars)}\n\n[Content truncated]`,
+          text: `${text.slice(0, maxChars)}\n\n[Content truncated; continue with offset ${maxChars}]`,
           truncated: true,
         });
       }
@@ -100,6 +100,21 @@ describe("optional Parallel web provider", () => {
     expect(Buffer.byteLength(projected.content)).toBeLessThanOrEqual(1_000_000);
   });
 
+  it("reads a window past the result size limit", async () => {
+    const full_content = `${"a".repeat(1_200_000)}tail`;
+    const data = {
+      results: [{ url: "https://example.test/page", title: "Long", excerpts: [], full_content }],
+    };
+    const peer = parallelMcpFixture({ result: { content: [], structuredContent: data } });
+    expect(
+      await webFetchFromTool(createWebProvider("parallel", peer.network), context, {
+        url: "https://example.test/page",
+        maxChars: 100,
+        offset: 1_199_998,
+      }),
+    ).toMatchObject({ text: "aatail", truncated: false });
+  });
+
   it("rejects a truncated serialized envelope instead of returning JSON as page text", async () => {
     const peer = parallelMcpFixture({
       result: { content: [{ type: "text", text: '{"results":[{"full_content":"Page text' }] },
@@ -135,7 +150,7 @@ describe("optional Parallel web provider", () => {
       }),
     ).toMatchObject({
       title: "First",
-      text: `${"a".repeat(100)}\n\n[Content truncated]`,
+      text: `${"a".repeat(100)}\n\n[Content truncated; continue with offset 100]`,
       truncated: true,
     });
   });
@@ -143,7 +158,12 @@ describe("optional Parallel web provider", () => {
   it("preserves exact-length content, leading whitespace and excerpt separators", async () => {
     for (const [full_content, excerpts, expected, truncated] of [
       ["x".repeat(100), [], "x".repeat(100), false],
-      [`${" ".repeat(101)}body`, [], `${" ".repeat(100)}\n\n[Content truncated]`, true],
+      [
+        `${" ".repeat(101)}body`,
+        [],
+        `${" ".repeat(100)}\n\n[Content truncated; continue with offset 100]`,
+        true,
+      ],
       [undefined, ["", "readable"], "\n\nreadable", false],
     ] as const) {
       const peer = parallelMcpFixture({
@@ -210,7 +230,7 @@ describe("optional Parallel web provider", () => {
     expect(page).toEqual({
       title: "Source",
       url: "https://example.test/page",
-      text: `${"Page text ".repeat(10)}\n\n[Content truncated]`,
+      text: `${"Page text ".repeat(10)}\n\n[Content truncated; continue with offset 100]`,
       truncated: true,
     });
     expect(peer.calls[1]).toMatchObject({
