@@ -200,7 +200,6 @@ import { helperHeaderOffset, helperOpenTarget } from "../lib/helper-header-offse
 import { t, useI18n } from "../lib/i18n";
 import { isInlineImageMimeType } from "../lib/inline-image";
 import { integrationsCacheScope, isIntegrationsScopeCurrent } from "../lib/integrations-cache";
-import { useKeyboardLayout } from "../lib/keyboard-layout";
 import { KeyboardScrollBack } from "../lib/keyboard-scroll-back";
 import { saveLastBotId } from "../lib/last-bot";
 import {
@@ -264,7 +263,7 @@ import { threadEdgeOptions, threadHeaderClearance, threadHeaderFloats } from "..
 import type { SendAttempt } from "../lib/thread-feedback";
 import { subscribeDelivered, useThreadFeedback } from "../lib/thread-feedback";
 import { ThreadJumpAnchor } from "../lib/thread-jump";
-import { threadKeyboardOffset } from "../lib/thread-keyboard-offset";
+import { threadKeyboardAvoidance } from "../lib/thread-keyboard-offset";
 import { useThreadMentionCatalog } from "../lib/thread-mention-catalog";
 import { ThreadReadOnlyContext } from "../lib/thread-read-only";
 import type { ThreadScrollAction, ThreadScrollState } from "../lib/thread-scroll";
@@ -465,7 +464,6 @@ export default function ThreadRoute() {
 }
 
 function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId: string }) {
-  const keyboardLayout = useKeyboardLayout();
   const colorScheme = useResolvedAppearance();
   const tokens = mobileTokens();
   const styles = useThemedStyles(createThreadHeaderStyles);
@@ -2639,16 +2637,17 @@ function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId: string
   ) : null;
 
   return (
-    <View ref={keyboardLayout.container} onLayout={keyboardLayout.onLayout} style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <KeyboardAvoidingView
         // Padding always settles to zero. "height" stays shrunk when the keyboard hides without
         // move frames, such as when a pushed screen closes with its own keyboard up.
         behavior="padding"
-        keyboardVerticalOffset={threadKeyboardOffset({
+        // Android measures its real screen position (including navigation bars and
+        // multi-window resizing) instead of relying on a stale JS measurement.
+        {...threadKeyboardAvoidance({
           os: Platform.OS,
           floatingHeader: threadHeaderFloats(),
           nativeHeaderHeight,
-          measuredOffset: keyboardLayout.offset,
         })}
         style={{
           flex: 1,
@@ -2996,7 +2995,6 @@ function Thread({ sessionEpoch, userId }: { sessionEpoch: number; userId: string
             </View>
           ) : null}
           <ThreadComposer
-            onFocus={keyboardLayout.onFocus}
             key={threadKey}
             ref={composerRef}
             agentSkills={agentSkills}
