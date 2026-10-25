@@ -5953,6 +5953,7 @@ describe("bot model auth on save", () => {
 
   function saveDeps(options: {
     modelId: string;
+    memoryProvider?: string;
     preferences: (args: { where: { modelId?: string; credential?: { provider?: string } } }) => {
       credential: ReturnType<typeof credentialRow>;
       modelId: string;
@@ -5975,8 +5976,13 @@ describe("bot model auth on save", () => {
       title: bot.title,
       description: bot.description,
     }));
+    const memoryConfigLookup = vi.fn(async () =>
+      options.memoryProvider ? { provider: options.memoryProvider } : null,
+    );
+    const load = vi.fn((ciphertext: string) => (ciphertext === "cipher-oauth" ? oauth : apiKey));
     const tx = {
       $queryRaw: vi.fn(async () => []),
+      spaceMemoryConfig: { findUnique: memoryConfigLookup },
       bot: { update: botUpdate },
       thread: { update: vi.fn(async () => ({ nextEventSeq: 2 })) },
       event: { create: vi.fn(async () => ({ seq: 1 })) },
@@ -5996,7 +6002,7 @@ describe("bot model auth on save", () => {
     const deps = {
       prisma,
       secrets: {
-        load: (ciphertext: string) => (ciphertext === "cipher-oauth" ? oauth : apiKey),
+        load,
       },
       events: { notify: vi.fn().mockResolvedValue(undefined) },
       env: {
@@ -6011,9 +6017,56 @@ describe("bot model auth on save", () => {
       preferenceFindFirst,
       secretFindFirst,
       botUpdate,
+      load,
+      memoryConfigLookup,
       handler: new RPCHandler(createRouter(deps)),
     };
   }
+
+  it.each(["rembric", "supermemory"])(
+    "enforces isolated scope from pure capabilities (%s)",
+    async (memoryProvider) => {
+      const { handler, botUpdate, load } = saveDeps({
+        modelId: spark,
+        preferences: () => null,
+        memoryProvider,
+      });
+      const fetch = vi.fn();
+      vi.stubGlobal("fetch", fetch);
+      try {
+        const response = await call(handler, "bots/update", {
+          botId: "bot-1",
+          memoryScope: "isolated",
+        });
+        expect(response?.status).toBe(memoryProvider === "rembric" ? 400 : 200);
+        expect(botUpdate).toHaveBeenCalledTimes(memoryProvider === "rembric" ? 0 : 1);
+        expect(load).not.toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
+  it.each([{ memoryScope: "shared" }, { memoryScope: null }, { pinned: true }])(
+    "accepts shared, inherit and unrelated updates without decrypting (%j)",
+    async (input) => {
+      const { handler, botUpdate, load, memoryConfigLookup } = saveDeps({
+        modelId: spark,
+        preferences: () => null,
+        memoryProvider: "rembric",
+      });
+      const response = await call(handler, "bots/update", { botId: "bot-1", ...input });
+      expect(response?.status).toBe(200);
+      expect(botUpdate).toHaveBeenCalledOnce();
+      expect(load).not.toHaveBeenCalled();
+      expect(memoryConfigLookup).not.toHaveBeenCalled();
+      if (!("memoryScope" in input))
+        expect(botUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ memoryScope: undefined }) }),
+        );
+    },
+  );
 
   it("saves a rename while resending an existing Spark override", async () => {
     const { preferenceFindFirst, secretFindFirst, botUpdate, handler } = saveDeps({
