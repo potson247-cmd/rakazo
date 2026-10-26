@@ -67,6 +67,7 @@ import {
   promptInvokesSkill,
   redactSecrets,
   renderBotDirectory,
+  repeatsDeniedAction,
   resolveActionApprovalForTools,
   sandboxCommandTimeoutMs,
   TAKEOVER_COMPUTER_PENDING_STATE,
@@ -138,6 +139,7 @@ import {
   claimIntendedEffect,
   completeExternalEffect,
   createApprovedEffectReplayQueue,
+  DENIED_ACTION_ERROR,
   isToolPauseResult,
   replaceCompletedExternalEffectResult,
   resolveDuplicateEffectGate,
@@ -2090,6 +2092,40 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   executionId,
                   consumedEffectIds,
                 );
+
+          // Refuse a repeat of a tool the user denied earlier in this run. Refusals carry a result,
+          // so only real denies match. A stored row is checked only while it still waits for an
+          // answer. web_fetch and secret_request target one site per call; request_secret and
+          // connect_app name their own target.
+          const repeatChecked =
+            applied &&
+            (!applied.duplicate || applied.effect.status === "intended") &&
+            !["web_fetch", "secret_request", "request_secret", "connect_app"].includes(name);
+          const deniedEarlier = repeatChecked
+            ? (
+                await deps.prisma.externalEffect.findMany({
+                  where: { runId, status: "denied", kind: replayEffectToolName },
+                  select: { request: true, result: true },
+                })
+              ).flatMap((effect) =>
+                effect.result == null
+                  ? [
+                      boundDirectApprovalDetails(effect.request, CATALOG_APPROVAL_TOOL)?.args ??
+                        effect.request,
+                    ]
+                  : [],
+              )
+            : [];
+          if (
+            applied &&
+            repeatsDeniedAction({ toolName: replayEffectToolName, args, denied: deniedEarlier })
+          ) {
+            await deps.prisma.externalEffect.updateMany({
+              where: { id: applied.effect.id, status: "intended" },
+              data: { status: "denied", result: { refused: "repeat" } },
+            });
+            return { error: DENIED_ACTION_ERROR };
+          }
 
           const runAutoReview = async () => {
             if (!injectedReview && !checker && !reviewSettings?.backups.length) return;
