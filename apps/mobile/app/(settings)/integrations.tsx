@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Linking,
   Pressable,
   ScrollView,
@@ -33,6 +34,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ConnectorIcon } from "../../components/connector-icon";
+import { MenuPicker } from "../../components/menu-picker";
 import { NativeActionButton } from "../../components/native-action-button";
 import { Chevron } from "../../components/row-accessories";
 import { rpc } from "../../lib/api";
@@ -49,6 +51,8 @@ import {
 import { loadLastBotId } from "../../lib/last-bot";
 import { native, useThemedStyles } from "../../lib/native";
 import { useSideInsets } from "../../lib/side-insets";
+import type { SourceAuthentication } from "../../lib/source-auth";
+import { nativeMcpSlug, sourceCredentialAuth } from "../../lib/source-auth";
 import { errorText } from "../../lib/user-error";
 
 type SourceKind = "treg" | "executor" | "mcp" | "api" | "graphql";
@@ -74,7 +78,11 @@ export default function Integrations() {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [credential, setCredential] = useState("");
-  const [requiresAuth, setRequiresAuth] = useState(true);
+  const [sourceAuth, setSourceAuth] = useState<SourceAuthentication>("bearer");
+  const [apiKeyHeader, setApiKeyHeader] = useState("x-api-key");
+  const [oauthClientId, setOauthClientId] = useState("");
+  const [oauthClientSecret, setOauthClientSecret] = useState("");
+  const [oauthSetupServerId, setOauthSetupServerId] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
@@ -87,6 +95,7 @@ export default function Integrations() {
   const [toolsOpen, setToolsOpen] = useState(true);
   const [toolsTick, setToolsTick] = useState(0);
   const connectionAttempt = useRef<AbortController | null>(null);
+  const oauthBrowserPending = useRef(false);
 
   const cacheScope = useRef<IntegrationsCacheScope | null>(null);
   const snapshot = useRef<IntegrationsSnapshot>({ catalog: [], connections: [] });
@@ -172,6 +181,22 @@ export default function Integrations() {
     );
   }, [catalog, detailKey]);
 
+  function resetSourceForm() {
+    // A credential from one space must never remain in the form for another.
+    setSourceKind(null);
+    setAdvancedOpen(false);
+    setSourceError(null);
+    setName("");
+    setUrl("");
+    setCredential("");
+    setSourceAuth("bearer");
+    setApiKeyHeader("x-api-key");
+    setOauthClientId("");
+    setOauthClientSecret("");
+    setOauthSetupServerId(null);
+    oauthBrowserPending.current = false;
+  }
+
   function clearStaleScope() {
     if (!cacheScope.current || isIntegrationsScopeCurrent(cacheScope.current)) return;
     cacheScope.current = null;
@@ -182,6 +207,7 @@ export default function Integrations() {
     setSources([]);
     setMcpServers([]);
     setMcpError(null);
+    resetSourceForm();
     setDetailKey(null);
     setLabelDrafts({});
     setPending(null);
@@ -214,6 +240,7 @@ export default function Integrations() {
       setSources([]);
       setMcpServers([]);
       setMcpError(null);
+      resetSourceForm();
       setDetailKey(null);
       setLabelDrafts({});
     }
@@ -321,10 +348,22 @@ export default function Integrations() {
         refreshGeneration.current += 1;
         sourcesGeneration.current += 1;
         connectionAttempt.current?.abort();
+        oauthBrowserPending.current = false;
         setPending(null);
       };
     }, []),
   );
+
+  useEffect(() => {
+    // Opening an external browser is not the same as completing OAuth.
+    // Refresh after returning to the foreground, not only after openURL resolves.
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active" || !oauthBrowserPending.current || !mounted.current) return;
+      oauthBrowserPending.current = false;
+      void retryRefresh();
+    });
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (!detailKey) {
@@ -359,7 +398,9 @@ export default function Integrations() {
     setName("");
     setUrl("");
     setCredential("");
-    setRequiresAuth(true);
+    setSourceAuth("bearer");
+    setOauthClientSecret("");
+    setOauthClientId("");
   }
 
   function openDetail(item: ConnectionCatalogItem) {
@@ -508,46 +549,111 @@ export default function Integrations() {
     setName(kind === "treg" ? "Treg" : kind === "executor" ? "Executor" : "");
     setUrl(kind === "treg" ? "https://treg.to/mcp/" : "");
     setCredential("");
-    setRequiresAuth(kind === "treg" || kind === "executor");
+    setSourceAuth("bearer");
+    setApiKeyHeader("x-api-key");
+    setOauthClientId("");
+    setOauthClientSecret("");
+  }
+
+  async function authorizeMcp(serverId: string) {
+    const isCurrent = captureConnectionScope();
+    if (!isCurrent()) return;
+    setPending(`oauth:${serverId}`);
+    setMcpError(null);
+    try {
+      // The API knows its configured Web origin and selects the callback itself.
+      const result = await rpc<
+        | { status: "authorization_required"; sessionId: string; authorizationUrl: string }
+        | { status: "already_connected" | "authorization_not_requested" }
+      >("mcp/oauth/begin", { serverId });
+      if (!isCurrent()) return;
+      if (result.status === "authorization_required") {
+        oauthBrowserPending.current = true;
+        await Linking.openURL(result.authorizationUrl);
+        if (!isCurrent()) return;
+      } else if (result.status === "authorization_not_requested") {
+        setMcpError(t("This MCP server has not requested OAuth authorization."));
+      }
+      if (isCurrent()) await refresh();
+    } catch (reason) {
+      if (isCurrent()) setMcpError(errorText(reason, t("Could not start MCP OAuth")));
+    } finally {
+      if (isCurrent()) setPending(null);
+    }
   }
 
   async function addSource() {
     if (!sourceKind) return;
+    const isCurrent = captureConnectionScope();
+    if (!isCurrent()) return;
     setPending("source");
     setSourceError(null);
     try {
+      const displayName =
+        name.trim() ||
+        (sourceKind === "treg"
+          ? "Treg"
+          : sourceKind === "executor"
+            ? "Executor"
+            : sourceKind === "graphql"
+              ? "GraphQL"
+              : t("Custom connector"));
+      if (sourceKind === "mcp" && sourceAuth === "oauth") {
+        // Native OAuth uses the same registered MCP server flow as Web rather
+        // than silently treating an OAuth grant as a static bearer token.
+        const server = await rpc<McpServer>("mcp/servers/create", {
+          slug: nativeMcpSlug(Date.now()),
+          name: displayName,
+          transport: "streamable_http",
+          endpoint: url.trim(),
+          headers: {},
+          oauthClient: oauthClientId.trim()
+            ? {
+                clientId: oauthClientId.trim(),
+                ...(oauthClientSecret ? { clientSecret: oauthClientSecret } : {}),
+              }
+            : undefined,
+        });
+        if (!isCurrent()) return;
+        setCredential("");
+        setOauthClientSecret("");
+        setOauthSetupServerId(server.id);
+        setSourceKind(null);
+        await refresh();
+        await authorizeMcp(server.id);
+        return;
+      }
+      const auth = sourceCredentialAuth(
+        sourceKind === "treg" || sourceKind === "executor"
+          ? "bearer"
+          : sourceAuth === "oauth"
+            ? "none"
+            : sourceAuth,
+        apiKeyHeader,
+      );
       await rpc("capabilities/install", {
         kind: sourceKind === "treg" || sourceKind === "executor" ? "mcp" : sourceKind,
-        name:
-          name.trim() ||
-          (sourceKind === "treg"
-            ? "Treg"
-            : sourceKind === "executor"
-              ? "Executor"
-              : sourceKind === "graphql"
-                ? "GraphQL"
-                : t("Custom connector")),
+        name: displayName,
         source: url.trim(),
-        credential: credential.trim() || undefined,
+        // Credentials are encrypted by the API and never stored in the config.
+        credential: auth.type === "none" ? undefined : credential.trim() || undefined,
         config:
           sourceKind === "treg"
             ? { preset: "treg", auth: { type: "bearer" } }
             : sourceKind === "api"
-              ? { openApi: true, auth: { type: requiresAuth ? "bearer" : "none" } }
+              ? { openApi: true, auth }
               : sourceKind === "graphql"
-                ? { auth: { type: requiresAuth ? "bearer" : "none" } }
-                : {
-                    preset: "custom",
-                    auth: { type: sourceKind === "executor" || requiresAuth ? "bearer" : "none" },
-                  },
+                ? { auth }
+                : { preset: "custom", auth },
       });
+      if (!isCurrent()) return;
       setCredential("");
       setSourceKind(null);
       await refresh();
     } catch (reason) {
-      setSourceError(errorText(reason, t("Could not add source")));
+      if (isCurrent()) setSourceError(errorText(reason, t("Could not add source")));
     } finally {
-      setPending(null);
+      if (isCurrent()) setPending(null);
     }
   }
 
@@ -793,6 +899,16 @@ export default function Integrations() {
                             ? t("Credential saved")
                             : t("No auth")}
                   </Text>
+                  {server.enabled &&
+                  (server.oauthStatus === "reconnect" || server.id === oauthSetupServerId) ? (
+                    <NativeActionButton
+                      label={t("Connect OAuth")}
+                      fill={false}
+                      busy={pending === `oauth:${server.id}`}
+                      onPress={() => void authorizeMcp(server.id)}
+                      prominence="secondary"
+                    />
+                  ) : null}
                 </View>
               ))}
           </View>
@@ -967,17 +1083,74 @@ export default function Integrations() {
                       />
                     ) : null}
                     {sourceKind !== "treg" && sourceKind !== "executor" ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setRequiresAuth((value) => !value)}
-                        style={styles.authToggle}
-                      >
-                        <Text style={styles.secondary}>
-                          {requiresAuth ? t("Bearer authentication") : t("No authentication")}
-                        </Text>
-                      </Pressable>
+                      <MenuPicker
+                        label={t("Authentication")}
+                        value={sourceAuth}
+                        choices={(
+                          [
+                            "none",
+                            "bearer",
+                            "api_key",
+                            ...(sourceKind === "mcp" ? ["oauth"] : []),
+                          ] as SourceAuthentication[]
+                        ).map((mode) => ({
+                          key: mode,
+                          label:
+                            mode === "none"
+                              ? t("No auth")
+                              : mode === "bearer"
+                                ? t("Bearer")
+                                : mode === "api_key"
+                                  ? t("API key")
+                                  : t("OAuth"),
+                        }))}
+                        onChange={(mode) => setSourceAuth(mode as SourceAuthentication)}
+                        plain
+                      />
                     ) : null}
-                    {sourceKind === "treg" || sourceKind === "executor" || requiresAuth ? (
+                    {sourceAuth === "api_key" &&
+                    sourceKind !== "treg" &&
+                    sourceKind !== "executor" ? (
+                      <TextInput
+                        value={apiKeyHeader}
+                        onChangeText={setApiKeyHeader}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        accessibilityLabel={t("API key header name")}
+                        placeholder={t("x-api-key")}
+                        placeholderTextColor={native.tertiaryLabel}
+                        style={styles.input}
+                      />
+                    ) : null}
+                    {sourceAuth === "oauth" && sourceKind === "mcp" ? (
+                      <>
+                        <TextInput
+                          value={oauthClientId}
+                          onChangeText={setOauthClientId}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          accessibilityLabel={t("OAuth client ID (optional)")}
+                          placeholder={t("OAuth client ID (optional)")}
+                          placeholderTextColor={native.tertiaryLabel}
+                          style={styles.input}
+                        />
+                        {oauthClientId.trim() ? (
+                          <TextInput
+                            value={oauthClientSecret}
+                            onChangeText={setOauthClientSecret}
+                            secureTextEntry
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            accessibilityLabel={t("OAuth client secret (optional)")}
+                            placeholder={t("OAuth client secret (optional)")}
+                            placeholderTextColor={native.tertiaryLabel}
+                            style={styles.input}
+                          />
+                        ) : null}
+                      </>
+                    ) : sourceAuth !== "none" ||
+                      sourceKind === "treg" ||
+                      sourceKind === "executor" ? (
                       <TextInput
                         value={credential}
                         onChangeText={setCredential}
@@ -989,7 +1162,9 @@ export default function Integrations() {
                             ? t("Treg token")
                             : sourceKind === "executor"
                               ? t("Executor token")
-                              : t("Bearer token")
+                              : sourceAuth === "api_key"
+                                ? t("API key")
+                                : t("Bearer token")
                         }
                         placeholderTextColor={native.tertiaryLabel}
                         style={styles.input}
@@ -1057,7 +1232,6 @@ function createIntegrationsStyles() {
       paddingHorizontal: 14,
       fontSize: 15,
     },
-    authToggle: { minHeight: 42, justifyContent: "center" },
     catalogGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     catalogStack: { gap: 8 },
     catalogCell: { flexGrow: 1, flexBasis: "47%", maxWidth: "49%" },

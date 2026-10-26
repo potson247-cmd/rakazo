@@ -958,6 +958,7 @@ export const DE_MESSAGES: Record<string, string> = {
   "OAuth connected": "OAuth verbunden",
   "OAuth expired": "OAuth abgelaufen",
   "Credential saved": "Zugangsdaten gespeichert",
+  Authentication: "Authentifizierungsmethode",
   "No auth": "Keine Authentifizierung",
   "The bot couldn't reply because its provider's daily limit was reached.":
     "Der Bot konnte nicht antworten, weil das Tageslimit seines Anbieters erreicht wurde.",
@@ -1095,4 +1096,18 @@ export const DE_MESSAGES: Record<string, string> = {
   "{from} to {to}": "{from} bis {to}",
   "Every {day}": "Jeden {day}",
   "Every {days} and {last}": "Jeden {days} und {last}",
+
+  // Native remote MCP authentication controls.
+  "API key header name": "Name des API-Schlüssel-Headers",
+  "Authorization finishes in your browser using the same Rakazo account.":
+    "Schließe die Autorisierung im Browser mit demselben Rakazo-Konto ab.",
+  Bearer: "Bearer",
+  "Connect OAuth": "Mit OAuth verbinden",
+  "Could not start MCP OAuth": "MCP-OAuth konnte nicht gestartet werden",
+  OAuth: "OAuth",
+  "OAuth client ID (optional)": "OAuth-Client-ID (optional)",
+  "OAuth client secret (optional)": "OAuth-Client-Geheimnis (optional)",
+  "This MCP server has not requested OAuth authorization.":
+    "Dieser MCP-Server hat keine OAuth-Autorisierung angefordert.",
+  "x-api-key": "x-api-key",
 };
