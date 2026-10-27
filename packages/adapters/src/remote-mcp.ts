@@ -17,6 +17,7 @@ import {
   normalizeHost,
 } from "@rakazo/contracts";
 import { Agent } from "undici";
+import { composioToolBatch } from "./composio-batch.js";
 import { combineSignals } from "./connector-safety.js";
 import type { ResolvedAddress, ResolveHostname } from "./network-address.js";
 import {
@@ -64,6 +65,7 @@ export async function listRemoteMcpTools(options: RemoteMcpOptions): Promise<Con
       description: tool.description ?? tool.title ?? tool.name,
       inputSchema: tool.inputSchema,
       readOnly: tool.annotations?.readOnlyHint,
+      batch: composioToolBatch(tool.name),
     })),
   );
 }

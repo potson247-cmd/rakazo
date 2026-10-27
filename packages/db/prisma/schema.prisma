@@ -965,6 +965,9 @@ model ExternalEffect {
   idempotencyKey String
   status         String
   request        Json
+  /// The actions a batch tool call runs, which approval rules and read trust judge instead of
+  /// `kind`. Empty when an entry names no action; null for any other tool.
+  batchActions   Json?
   result         Json?
   reviewDecision String?
   reviewReason   String?

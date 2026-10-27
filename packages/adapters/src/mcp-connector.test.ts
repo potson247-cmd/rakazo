@@ -2659,3 +2659,41 @@ it("preserves explicit MCP read-only annotations for unattended consumers", asyn
     await connector.close();
   }
 });
+
+it("marks a Composio MCP server's multi-execute tool as a batch under its prefixed name", async () => {
+  const state = {
+    failNext: false,
+    initializations: 0,
+    tools: [
+      { name: "COMPOSIO_MULTI_EXECUTE_TOOL", inputSchema: { type: "object" } },
+      { name: "COMPOSIO_SEARCH_TOOLS", inputSchema: { type: "object" } },
+    ],
+  };
+  vi.stubGlobal("fetch", mcpFetch(state));
+  const connector = new McpConnector(
+    { botMcpServer: { findMany: vi.fn(async () => [ASSIGNMENT]) } } as never,
+    new EncryptedSecretStore("fake-key"),
+    { network: TEST_NETWORK },
+  );
+  try {
+    const tools = await connector.discoverTools({
+      operationId: "test",
+      traceId: "test",
+      spaceId: "w1",
+      userId: "u1",
+      botId: "bot-1",
+      signal: new AbortController().signal,
+    });
+    expect(
+      tools.map((tool) => [
+        tool.name.endsWith("__COMPOSIO_MULTI_EXECUTE_TOOL"),
+        tool.batch?.action,
+      ]),
+    ).toEqual([
+      [true, "tool_slug"],
+      [false, undefined],
+    ]);
+  } finally {
+    await connector.close();
+  }
+});

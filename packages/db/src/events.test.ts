@@ -2265,9 +2265,13 @@ describe("answerRunInput", () => {
         },
         task: { updateMany: vi.fn() },
         externalEffect: {
-          findFirst: vi
-            .fn()
-            .mockResolvedValue({ id: "effect-1", status: "intended", kind, request }),
+          findFirst: vi.fn().mockResolvedValue({
+            id: "effect-1",
+            status: "intended",
+            kind,
+            request,
+            batchActions: kind === "COMPOSIO_MULTI_EXECUTE_TOOL" ? ["GMAIL_SEND_EMAIL"] : null,
+          }),
           update: vi.fn().mockResolvedValue({ id: "effect-1" }),
         },
         spaceSettingOverride: {
@@ -2359,6 +2363,99 @@ describe("answerRunInput", () => {
       }
     },
   );
+
+  it.each([
+    [
+      "a batch",
+      ["GMAIL_ARCHIVE_THREAD", "GMAIL_SEND_EMAIL"],
+      ["GMAIL_ARCHIVE_THREAD", "GMAIL_SEND_EMAIL"],
+    ],
+    ["a batch with an entry naming no action", [], []],
+    [
+      "a batch from before its actions were recorded",
+      null,
+      ["mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL"],
+    ],
+  ])("always allows each action of %s, never the batch tool", async (_, batchActions, saved) => {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: "thread-1" }]),
+      message: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "message-1",
+          blocks: [
+            {
+              kind: "ask",
+              approvalEffectId: "effect-1",
+              text: "Review before GMAIL_SEND_EMAIL",
+              status: "pending",
+              actions: [
+                { id: "allow", label: "Allow once" },
+                { id: "always", label: "Always allow" },
+                { id: "deny", label: "Deny" },
+              ],
+            },
+          ],
+        }),
+        update: vi.fn().mockResolvedValue({ id: "message-1" }),
+      },
+      run: {
+        findFirst: vi.fn().mockResolvedValue({ botId: "bot-1", userId: "user-1" }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue({ userId: "user-1", status: "queued" }),
+      },
+      task: { updateMany: vi.fn() },
+      externalEffect: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "effect-1",
+          status: "intended",
+          kind: "mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL",
+          request: { tools: [{ tool_slug: "GMAIL_SEND_EMAIL" }] },
+          batchActions,
+        }),
+        update: vi.fn().mockResolvedValue({ id: "effect-1" }),
+      },
+      spaceSettingOverride: { findUnique: vi.fn().mockResolvedValue(null) },
+      userActionApprovalRule: {
+        findMany: vi.fn().mockResolvedValue([]),
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        upsert: vi.fn().mockResolvedValue({ id: "rule-1" }),
+      },
+      actionApprovalRule: { upsert: vi.fn() },
+      thread: { update: vi.fn().mockResolvedValue({ nextEventSeq: 10 }) },
+      event: {
+        create: vi.fn(async ({ data }: { data: { seq: number; type: string } }) => ({
+          ...event(data.seq),
+          type: data.type,
+        })),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+    } as unknown as PrismaClient;
+
+    await expect(
+      answerRunInput(
+        prisma,
+        {
+          spaceId: "workspace-1",
+          threadId: "thread-1",
+          runId: "run-1",
+          messageId: "message-1",
+          answeredByUserId: "user-1",
+          answer: "always",
+        },
+        new TestFanout(),
+      ),
+    ).resolves.toBe(true);
+
+    expect(tx.externalEffect.update).toHaveBeenCalledWith({
+      where: { id: "effect-1" },
+      data: { status: "approved" },
+    });
+    expect(
+      tx.userActionApprovalRule.upsert.mock.calls.map(([call]) => call.create.matchValue),
+    ).toEqual(saved);
+  });
 
   it("does not let another workspace member create an always-allow rule for the run owner", async () => {
     const tx = {

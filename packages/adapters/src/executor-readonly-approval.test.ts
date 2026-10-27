@@ -56,6 +56,7 @@ type Effect = {
   idempotencyKey: string;
   status: string;
   request: unknown;
+  batchActions?: string[];
   result?: unknown;
   reviewDecision?: string;
   runId?: string;
@@ -96,7 +97,10 @@ function fixture({
   connectedApps = [] as string[],
   userDevices,
   botUserId = "user-1",
+  batch,
 }: {
+  /** The tool runs the actions its arguments name; see ConnectorTool.batch. */
+  batch?: ConnectorTool["batch"];
   userDevices?: UserDeviceGateway;
   /** The bot's owner; runs are started by user-1. */
   botUserId?: string;
@@ -139,6 +143,7 @@ function fixture({
     name,
     description: "Read an item",
     readOnly,
+    batch,
     inputSchema: {
       type: "object",
       properties: { id: { type: "string" } },
@@ -1084,13 +1089,95 @@ describe("connector read-only metadata and approval enforcement", () => {
 
 describe("Composio batches", () => {
   beforeEach(() => reviewMock.mockReset());
+  // `id` satisfies the fixture tool's schema, which a catalog call checks.
   const batch = (...slugs: Array<string | undefined>) => ({
+    id: "batch",
     tools: slugs.map((slug) =>
       slug ? { tool_slug: slug, arguments: { to: "a@example.com" } } : { arguments: {} },
     ),
   });
   const batchFixture = (options: Parameters<typeof fixture>[0] = {}) =>
-    fixture({ name: "COMPOSIO_MULTI_EXECUTE_TOOL", readOnly: false, ...options });
+    fixture({
+      name: "COMPOSIO_MULTI_EXECUTE_TOOL",
+      readOnly: undefined,
+      batch: { items: "tools", action: "tool_slug", arguments: "arguments" },
+      ...options,
+    });
+
+  it.each([false, true])(
+    "asks for a send after an archive was always allowed (catalog = %s)",
+    async (catalog) => {
+      const f = batchFixture({
+        catalog,
+        rules: [{ effect: "always_allow", matchKind: "tool", matchValue: "gmail_archive_thread" }],
+      });
+      f.setCalls([{ args: batch("GMAIL_ARCHIVE_THREAD"), executionId: "call-1" }]);
+      await f.run();
+      expect(f.execute).toHaveBeenCalledOnce();
+      f.setCalls([{ args: batch("GMAIL_SEND_EMAIL"), executionId: "call-2" }]);
+      await f.run();
+      expect(f.execute).toHaveBeenCalledOnce();
+      expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("sends a send in the batch to Auto Review even with the batch tool always allowed", async () => {
+    reviewMock.mockResolvedValue({ decision: "ask", reason: "Not asked to send", model: "mock" });
+    const f = batchFixture({
+      autoReview: true,
+      rules: [
+        { effect: "always_allow", matchKind: "tool", matchValue: "COMPOSIO_MULTI_EXECUTE_TOOL" },
+      ],
+    });
+    f.setCalls([{ args: batch("GMAIL_SEND_EMAIL"), executionId: "call-1" }]);
+    await f.run();
+    expect(reviewMock).toHaveBeenCalledOnce();
+    expect(f.execute).not.toHaveBeenCalled();
+    expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+  });
+
+  it("matches tool and category rules on the actions, whatever the batch tool is called", async () => {
+    for (const rule of [
+      { effect: "require_approval", matchKind: "tool", matchValue: "GMAIL_SEND_EMAIL" },
+      { effect: "require_approval", matchKind: "category", matchValue: "email" },
+    ] as ActionApprovalRule[]) {
+      const f = batchFixture({
+        name: "mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL",
+        autoReview: true,
+        rules: [rule],
+      });
+      f.setCalls([{ args: batch("GMAIL_SEND_EMAIL"), executionId: "call-1" }]);
+      await f.run();
+      expect(reviewMock).not.toHaveBeenCalled();
+      expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+    }
+  });
+
+  it("records the actions an Always allow on the card would save", async () => {
+    const f = batchFixture();
+    f.setCalls([
+      { args: batch("GMAIL_ARCHIVE_THREAD", "GMAIL_SEND_EMAIL"), executionId: "call-1" },
+    ]);
+    await f.run();
+    f.setCalls([{ args: batch("GMAIL_SEND_EMAIL", undefined), executionId: "call-2" }]);
+    await f.run();
+    expect(f.effects.map((effect) => effect.batchActions)).toEqual([
+      ["GMAIL_ARCHIVE_THREAD", "GMAIL_SEND_EMAIL"],
+      [],
+    ]);
+  });
+
+  it("asks when the batch lists no actions", async () => {
+    const f = batchFixture({
+      rules: [
+        { effect: "always_allow", matchKind: "tool", matchValue: "COMPOSIO_MULTI_EXECUTE_TOOL" },
+      ],
+    });
+    f.setCalls([{ args: {}, executionId: "call-1" }]);
+    await f.run();
+    expect(f.execute).not.toHaveBeenCalled();
+    expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+  });
 
   it("runs a batch whose every action is allowed", async () => {
     const f = batchFixture({

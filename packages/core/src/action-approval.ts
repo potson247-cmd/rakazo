@@ -381,29 +381,29 @@ export function resolveActionApproval(input: {
   return resolveActionApprovalDetail(input).decision;
 }
 
-/** Composio sends every batch of actions through this one tool, naming each in `tools[].tool_slug`. */
-export const COMPOSIO_MULTI_EXECUTE_TOOL = "COMPOSIO_MULTI_EXECUTE_TOOL";
-
 /**
- * The actions a Composio batch runs, or undefined when the call is not a batch. `complete` is false
- * when an entry names no action: nothing can show what it does, so the call must ask.
+ * The actions a batch call runs, where `shape` says the call names each one at
+ * `args[items][i][action]`. `complete` is false when an entry names no action, or the call lists
+ * none: nothing can show what it does, so the call must ask.
  */
-export function composioBatchActions(
-  toolName: string,
+export function batchActions(
+  shape: { items: string; action: string },
   args: unknown,
-): { slugs: string[]; complete: boolean } | undefined {
-  if (toolName !== COMPOSIO_MULTI_EXECUTE_TOOL) return undefined;
-  const tools = args && typeof args === "object" ? (args as { tools?: unknown }).tools : undefined;
-  if (!Array.isArray(tools)) return undefined;
-  const slugs = new Set<string>();
-  let complete = tools.length > 0;
-  for (const item of tools) {
-    const slug =
-      item && typeof item === "object" ? (item as { tool_slug?: unknown }).tool_slug : undefined;
-    if (typeof slug === "string" && slug.trim()) slugs.add(slug.trim());
+): { actions: string[]; complete: boolean } {
+  const items =
+    args && typeof args === "object" ? (args as Record<string, unknown>)[shape.items] : undefined;
+  if (!Array.isArray(items)) return { actions: [], complete: false };
+  const actions = new Set<string>();
+  let complete = items.length > 0;
+  for (const item of items) {
+    const action =
+      item && typeof item === "object"
+        ? (item as Record<string, unknown>)[shape.action]
+        : undefined;
+    if (typeof action === "string" && action.trim()) actions.add(action.trim());
     else complete = false;
   }
-  return { slugs: [...slugs], complete };
+  return { actions: [...actions], complete };
 }
 
 /**

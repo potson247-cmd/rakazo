@@ -159,6 +159,19 @@ describe("composio tool mapping", () => {
     expect(tools[1]?.inputSchema).toMatchObject({ properties: { username: { type: "string" } } });
   });
 
+  it("marks the multi-execute tool as a batch of the actions it names", () => {
+    const tools = asConnectorTools([
+      { slug: "COMPOSIO_MULTI_EXECUTE_TOOL" },
+      { type: "function", function: { name: "COMPOSIO_MULTI_EXECUTE_TOOL" } },
+      { slug: "COMPOSIO_SEARCH_TOOLS" },
+    ]);
+    expect(tools.map((tool) => tool.batch)).toEqual([
+      { items: "tools", action: "tool_slug", arguments: "arguments" },
+      { items: "tools", action: "tool_slug", arguments: "arguments" },
+      undefined,
+    ]);
+  });
+
   it("retains provider route metadata independently of the tool name", async () => {
     const destination = new DestinationEmulator();
     const events: ConnectorEvent[] = [];

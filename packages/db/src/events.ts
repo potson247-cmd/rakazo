@@ -12,7 +12,6 @@ import {
   ACTIVE_RUN_STATUSES,
   blocksToAgentHistoryText,
   callIdFromClientNonce,
-  composioBatchActions,
   instructionUpdateDiff,
   isApprovalAskBlock,
   isConversationalRun,
@@ -29,7 +28,7 @@ import {
 import { urlSite } from "@rakazo/core/egress";
 import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import { getLogger } from "@rakazo/logging";
-import { saveApprovalRule } from "./approval-settings.js";
+import { saveApprovalRule, storedBatchActions } from "./approval-settings.js";
 import { cancelRunsInTransaction } from "./cancel-runs.js";
 import type { Prisma, PrismaClient } from "./client.js";
 import { expireComputerExecutionLeases } from "./computers.js";
@@ -814,7 +813,12 @@ async function commitAnswerRunInput(
   if (login && !login.success) return null;
   if (secretAsk && input.answer.length > BOT_SECRET_VALUE_MAX_LENGTH)
     throw new AnswerTooLongError();
-  let approvalEffect: { id: string; kind: string; request: Prisma.JsonValue } | null = null;
+  let approvalEffect: {
+    id: string;
+    kind: string;
+    request: Prisma.JsonValue;
+    batchActions: Prisma.JsonValue;
+  } | null = null;
   let editedInstructions: string | undefined;
   let approvalAnswer = input.answer;
   if (approvalAsk && pendingAsk.instructionUpdate && input.answer.startsWith("{")) {
@@ -935,10 +939,9 @@ async function commitAnswerRunInput(
       data: { status: allowed ? "approved" : "denied" },
     });
     // "Always" on a fetch card allows that site, never every site the tool can reach, and on a
-    // Composio batch allows each action in it, never every action the batch tool can run.
+    // batch allows each action in it, never every action the batch tool can run.
     const site = alwaysAllowedSite(approvalEffect!);
-    const batch = composioBatchActions(approvalEffect!.kind, approvalEffect!.request);
-    const tools = batch ? (batch.complete ? batch.slugs : []) : [approvalEffect!.kind];
+    const tools = storedBatchActions(approvalEffect!.batchActions) ?? [approvalEffect!.kind];
     if (input.answer === "always" && (site || approvalEffect!.kind !== "web_fetch")) {
       // Saved where the member's confirmations apply in this Space: the account or its override.
       for (const tool of site ? [site] : tools) {
