@@ -71,6 +71,43 @@ export function normalizeWorkspacePath(value: string): string {
   return segments.join("/");
 }
 
+/**
+ * A path under a sandbox's home names the workspace root, the same mapping the provider's
+ * command cwd applies: `/home/rakazo/notes/x.md` on a Docker computer is `notes/x.md`, not
+ * `home/rakazo/notes/x.md` under the root. Each provider lists the prefixes its cwd mapping
+ * strips so `write_file` and the shell land on the same file.
+ */
+export function normalizeSandboxFilePath(value: string, homePrefixes: readonly string[]): string {
+  const portable = value.replace(/\\/g, "/");
+  for (const prefix of homePrefixes) {
+    if (portable === prefix) return "";
+    if (portable.startsWith(`${prefix}/`)) {
+      return normalizeWorkspacePath(portable.slice(prefix.length + 1));
+    }
+  }
+  return normalizeWorkspacePath(value);
+}
+
+/**
+ * Homes a Team Computer may spell absolutely: the Docker home and the hosted
+ * providers' workspace roots. Every provider's cwd mapping strips its own entry.
+ * Daytona's root varies by image user, so it cannot be listed statically.
+ */
+const SANDBOX_HOME_PREFIXES = [
+  "/home/rakazo",
+  "/home/user/rakazo-home",
+  "/home/desktop/rakazo-home",
+] as const;
+
+function stripSandboxHomePrefix(value: string): string {
+  const portable = value.replace(/\\/g, "/");
+  for (const prefix of SANDBOX_HOME_PREFIXES) {
+    if (portable === prefix) return "/";
+    if (portable.startsWith(`${prefix}/`)) return portable.slice(prefix.length);
+  }
+  return value;
+}
+
 export function workspacePath(root: string, relative: string): string {
   const normalized = normalizeWorkspacePath(relative);
   return normalized ? path.posix.join(root, normalized) : root;
@@ -87,7 +124,7 @@ export function resolveBotWorkspacePath(
 ): string {
   const requestedPath = expandHomePrefix(rawPath);
   if (scope !== "team") return requestedPath;
-  const explicitRootPath = stripVirtualWorkspaceRoot(requestedPath);
+  const explicitRootPath = stripVirtualWorkspaceRoot(stripSandboxHomePrefix(requestedPath));
   const normalized = normalizeWorkspacePath(explicitRootPath ?? requestedPath);
   if (explicitRootPath !== null || isTeamRootPath(normalized)) return normalized;
   return path.posix.join(teamBotWorkspaceDirectory(botId), normalized);
