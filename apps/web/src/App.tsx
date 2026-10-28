@@ -47,9 +47,6 @@ const PasswordResetPage = lazyComponent(() =>
 const OnboardingPage = lazyComponent(() =>
   import("./pages/Onboarding").then((module) => module.OnboardingPage),
 );
-const WelcomePage = lazyComponent(() =>
-  import("./pages/Welcome").then((module) => module.WelcomePage),
-);
 const ArtifactsPage = lazyComponent(() =>
   import("./pages/Artifacts").then((module) => module.ArtifactsPage),
 );
@@ -166,7 +163,7 @@ function SessionApp() {
         <div className="h-full" data-rakazo-app-state="ready">
           <Suspense fallback={<PageLoading />}>
             <Routes>
-              <Route path="/" element={user ? <Navigate to="/app" replace /> : <WelcomePage />} />
+              <Route path="/" element={<Navigate to={user ? "/app" : "/sign-in"} replace />} />
               <Route
                 path="/sign-in"
                 element={

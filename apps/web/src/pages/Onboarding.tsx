@@ -27,6 +27,7 @@ import {
   pickCatalogModelId,
   popularModelProvidersFirst,
 } from "@rakazo/core";
+import type { StepperStep } from "@rakazo/ui-web";
 import {
   Button,
   Input,
@@ -38,10 +39,13 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
+  Stepper,
 } from "@rakazo/ui-web";
 import { Check, Copy } from "lucide-react";
+import type { ReactNode } from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { BrandMark } from "../components/BrandMark";
 import {
   ModelPreflightFeedback,
   modelPreflightTestingLabel,
@@ -64,6 +68,7 @@ import { useModelOAuthSignIn } from "../lib/use-model-oauth-signin";
 import { errorText } from "../lib/user-error";
 import { CompatibleKeyField } from "./model-settings/compatible-key-field";
 import { OnboardingImport } from "./onboarding-import";
+import { WindowStrip } from "./WindowChrome";
 
 const CUSTOM_MODEL_OPTION = "__rakazo_custom_model__";
 /** Rakazo credits sit among the providers as the one choice that needs no account of its own. */
@@ -153,6 +158,7 @@ export function OnboardingPage() {
   const [billingEnabled, setBillingEnabled] = useState(false);
   // The step after the survey; null until me loads.
   const [afterSurvey, setAfterSurvey] = useState<"model" | "bot" | null>(null);
+  const [hasSurvey, setHasSurvey] = useState(linkedStep === "survey");
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [provider, setProvider] = useState("");
   const [providerAuth, setProviderAuth] = useState<ProviderAuth | undefined>();
@@ -216,6 +222,7 @@ export function OnboardingPage() {
         setCatalog(models);
         const next = me.needsModel ? "model" : "bot";
         setAfterSurvey(next);
+        if (me.needsSignupSurvey) setHasSurvey(true);
         if (!linkedStep) goTo(me.needsSignupSurvey ? "survey" : next);
       })
       .catch(() => {
@@ -566,8 +573,36 @@ export function OnboardingPage() {
   // Loading, and creating the first bot, both wait on one spinner until the chat opens.
   if (step === "loading" || (step === "bot" && !error)) return <PageLoading />;
 
+  /** The steps this user goes through, in order; the last one opens the first agent. */
+  const listedSteps: OnboardingListStep[] = [
+    ...(hasSurvey ? (["survey"] as const) : []),
+    ...(afterSurvey === "model" || linkedStep === "model" ? (["model"] as const) : []),
+    "bot",
+  ];
+  const stepTitles: Record<OnboardingListStep, string> = {
+    survey: t`Welcome to Rakazo`,
+    model: t`Connect a model`,
+    bot: t`Try your agent`,
+  };
+  const current = listedSteps.indexOf(step as OnboardingListStep);
+
   return (
-    <div className="min-h-full bg-background px-6 py-12">
+    <OnboardingFrame
+      steps={
+        afterSurvey
+          ? listedSteps.map((id, index) => ({
+              id,
+              title: stepTitles[id],
+              status:
+                current < 0 || index > current
+                  ? "upcoming"
+                  : index === current
+                    ? "current"
+                    : "complete",
+            }))
+          : null
+      }
+    >
       <div className="mx-auto w-full max-w-[560px]">
         {step === "survey" && !importing ? (
           <>
@@ -1096,6 +1131,50 @@ export function OnboardingPage() {
             </Button>
           </div>
         ) : null}
+      </div>
+    </OnboardingFrame>
+  );
+}
+
+type OnboardingListStep = "survey" | "model" | "bot";
+
+/**
+ * The entry pages' frame for onboarding: a sidebar with the window strip, the Rakazo head and the
+ * steps, next to the step itself. The list is drawn in the link blue, onboarding's accent.
+ */
+function OnboardingFrame({
+  steps,
+  children,
+}: {
+  steps: StepperStep[] | null;
+  children: ReactNode;
+}) {
+  const { t } = useLingui();
+  return (
+    // The desktop app waits for a marked surface before it shows the page.
+    <div
+      data-rakazo-surface="onboarding"
+      className="flex min-h-full flex-col bg-background text-foreground md:flex-row"
+    >
+      <aside className="shrink-0 border-b border-sidebar-border bg-sidebar text-sidebar-foreground md:w-[28%] md:border-r md:border-b-0">
+        <WindowStrip />
+        <div className="flex items-center gap-3 px-10 pt-4">
+          <BrandMark size={32} />
+          <span className="text-lg font-medium tracking-tight">Rakazo</span>
+        </div>
+        {steps ? (
+          <Stepper
+            aria-label={t`Onboarding steps`}
+            completeLabel={t`Done`}
+            tone="link"
+            className="px-10 pt-10 pb-6"
+            steps={steps}
+          />
+        ) : null}
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="app-drag h-12 shrink-0" />
+        <main className="px-6 pt-10 pb-16">{children}</main>
       </div>
     </div>
   );

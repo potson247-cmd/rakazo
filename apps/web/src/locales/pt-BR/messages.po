@@ -2611,6 +2611,7 @@ msgstr "Não tem uma conta?"
 #: src/components/ToolActivityDisclosure.tsx
 #: src/lib/ticket-status.ts
 #: src/pages/ActivityList.tsx
+#: src/pages/Onboarding.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 #: src/pages/shell/import-setup-card.tsx
 msgid "Done"
@@ -4180,6 +4181,10 @@ msgstr "no dia {day} às {time}"
 msgid "on the 1st at {0}"
 msgstr "no dia 1º às {0}"
 
+#: src/pages/Onboarding.tsx
+msgid "Onboarding steps"
+msgstr "Etapas de introdução"
+
 #: src/lib/cron.ts
 msgid "One-time"
 msgstr "Uma vez"
@@ -5322,7 +5327,6 @@ msgstr ""
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/PluginsOverlay.tsx
-#: src/pages/Welcome.tsx
 msgid "Sign in"
 msgstr "Entrar"
 
@@ -5357,7 +5361,6 @@ msgid "Sign in with the subscription, or test the API key instead."
 msgstr "Entre com a assinatura ou teste a chave de API."
 
 #: src/pages/Auth.tsx
-#: src/pages/Welcome.tsx
 msgid "Sign up"
 msgstr "Cadastre-se"
 
@@ -5993,6 +5996,10 @@ msgstr "Tentar novamente"
 msgid "Try the test again."
 msgstr "Tente o teste novamente."
 
+#: src/pages/Onboarding.tsx
+msgid "Try your agent"
+msgstr "Experimente seu agente"
+
 #: src/lib/cron.ts
 msgid "Tuesday"
 msgstr "terça-feira"
@@ -6298,8 +6305,9 @@ msgid "Weekends"
 msgstr "Fins de semana"
 
 #: src/components/SignupSurvey.tsx
+#: src/pages/Onboarding.tsx
 msgid "Welcome to Rakazo"
-msgstr ""
+msgstr "Boas-vindas ao Rakazo"
 
 #: src/pages/shell/dialogs.tsx
 msgid "What about its memories?"
@@ -6476,10 +6484,6 @@ msgstr ""
 #: src/components/ModelCredits.tsx
 msgid "Your subscription or API key"
 msgstr ""
-
-#: src/pages/Welcome.tsx
-msgid "Your team of always-on agents<0/>that you can give real work to."
-msgstr "Sua equipe de agentes sempre ativos<0/>, a quem você pode dar trabalho de verdade."
 
 #: src/lib/user-error.ts
 msgid "Your voice provider is out of credit."

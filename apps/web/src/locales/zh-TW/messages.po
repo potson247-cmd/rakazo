@@ -2612,6 +2612,7 @@ msgstr "還沒有帳號？"
 #: src/components/ToolActivityDisclosure.tsx
 #: src/lib/ticket-status.ts
 #: src/pages/ActivityList.tsx
+#: src/pages/Onboarding.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 #: src/pages/shell/import-setup-card.tsx
 msgid "Done"
@@ -4181,6 +4182,10 @@ msgstr "{day} 日 {time}"
 msgid "on the 1st at {0}"
 msgstr "每月 1 日 {0}"
 
+#: src/pages/Onboarding.tsx
+msgid "Onboarding steps"
+msgstr "開始使用的步驟"
+
 #: src/lib/cron.ts
 msgid "One-time"
 msgstr "一次性"
@@ -5323,7 +5328,6 @@ msgstr "側邊欄密度"
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/PluginsOverlay.tsx
-#: src/pages/Welcome.tsx
 msgid "Sign in"
 msgstr "登入"
 
@@ -5358,7 +5362,6 @@ msgid "Sign in with the subscription, or test the API key instead."
 msgstr "請使用訂閱登入，或改為測試 API 金鑰。"
 
 #: src/pages/Auth.tsx
-#: src/pages/Welcome.tsx
 msgid "Sign up"
 msgstr "註冊"
 
@@ -5994,6 +5997,10 @@ msgstr "重試"
 msgid "Try the test again."
 msgstr "請重試測試。"
 
+#: src/pages/Onboarding.tsx
+msgid "Try your agent"
+msgstr "試用你的代理程式"
+
 #: src/lib/cron.ts
 msgid "Tuesday"
 msgstr "週二"
@@ -6299,6 +6306,7 @@ msgid "Weekends"
 msgstr "週末"
 
 #: src/components/SignupSurvey.tsx
+#: src/pages/Onboarding.tsx
 msgid "Welcome to Rakazo"
 msgstr "歡迎使用 Rakazo"
 
@@ -6477,10 +6485,6 @@ msgstr ""
 #: src/components/ModelCredits.tsx
 msgid "Your subscription or API key"
 msgstr "你的訂閱或 API 金鑰"
-
-#: src/pages/Welcome.tsx
-msgid "Your team of always-on agents<0/>that you can give real work to."
-msgstr "隨時待命的代理程式團隊<0/>讓你交付實際工作。"
 
 #: src/lib/user-error.ts
 msgid "Your voice provider is out of credit."
