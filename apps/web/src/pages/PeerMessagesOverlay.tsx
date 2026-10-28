@@ -13,8 +13,10 @@ import {
 } from "@rakazo/ui-web";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { desktopBridge } from "../lib/desktop";
 import { useSpaceQueries } from "../lib/query";
 import { rpc } from "../lib/rpc";
+import { WindowChrome } from "./WindowChrome";
 
 /**
  * Full-screen view-only transcript of a bot-to-bot exchange.
@@ -78,8 +80,9 @@ export function PeerMessagesOverlay({
         showCloseButton={false}
         className="inset-0 top-0 left-0 flex h-full w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-background p-0 text-foreground ring-0 sm:max-w-none"
       >
-        <div className="flex items-center justify-between gap-4 border-b border-sidebar-border px-[18px] py-3.5">
+        <div className="app-drag flex items-center justify-between gap-4 border-b border-sidebar-border px-[18px] py-3.5">
           <div className="flex min-w-0 flex-1 items-center gap-3">
+            {desktopBridge() ? <WindowChrome /> : null}
             <div className="flex items-center -space-x-2">
               <BotAvatar avatarSet={botAvatarSet} color={botColor} identity={botId} size={28} />
               <BotAvatar
@@ -94,7 +97,10 @@ export function PeerMessagesOverlay({
               <span className="truncate text-muted-foreground">{peerBotName}</span>
             </DialogTitle>
           </div>
-          <DialogClose aria-label={t`Close`} render={<Button variant="ghost" size="sm" />}>
+          <DialogClose
+            aria-label={t`Close`}
+            render={<Button variant="ghost" size="sm" className="app-no-drag" />}
+          >
             <Trans>Close</Trans>
           </DialogClose>
         </div>

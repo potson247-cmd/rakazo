@@ -109,6 +109,47 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
     )
     .toBe(true);
   await captureScreenshot(page, testInfo, "peer-view-only");
+
+  await view.getByRole("button", { name: "Close" }).click();
+  await expect(view).toHaveCount(0);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.evaluate(() => {
+    const state = {
+      phase: "idle",
+      currentVersion: "0.1.0",
+      availableVersion: null,
+      percent: null,
+      message: null,
+      checkedAt: null,
+    };
+    Object.defineProperty(window, "rakazoDesktop", {
+      value: {
+        platform: "darwin",
+        window: {
+          close: async () => {},
+          minimize: async () => {},
+          toggleMaximize: async () => {},
+          state: async () => ({ minimized: false, maximized: false, fullScreen: false }),
+        },
+        oauth: { onCallback: () => () => {} },
+        update: {
+          state: async () => state,
+          check: async () => state,
+          download: async () => state,
+          install: async () => {},
+        },
+      },
+    });
+  });
+  await chip.scrollIntoViewIfNeeded();
+  await chip.click();
+  await expect(view).toBeVisible();
+  const avatarsLeft = await view
+    .locator('[aria-hidden="true"].app-drag')
+    .evaluate((spacer) => spacer.nextElementSibling!.getBoundingClientRect().left);
+  // macOS draws the traffic lights from x=16 to about x=68 in the window's top-left corner.
+  expect(avatarsLeft).toBeGreaterThan(80);
+  await captureScreenshot(page, testInfo, "peer-view-only-macos-desktop");
 });
 
 const foldedReplyText = "on it. i will work this in the background";
