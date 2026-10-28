@@ -13,6 +13,7 @@ import {
   Menu,
   net,
   safeStorage,
+  screen,
   session,
   shell,
 } from "electron";
@@ -280,7 +281,7 @@ function createWindow(url: string, partition: string | null) {
   markOnce("rk:main:window-create-start");
   const icon = developmentIcon();
   const win = new BrowserWindow({
-    ...browserWindowOptions(process.platform),
+    ...browserWindowOptions(process.platform, screen.getPrimaryDisplay().workAreaSize),
     ...(icon ? { icon } : {}),
     webPreferences: {
       preload: path.join(import.meta.dirname, "preload.cjs"),
@@ -570,7 +571,7 @@ function oauthPopupWindowOptions(partition: string | null) {
 function createSetupWindow() {
   const icon = developmentIcon();
   const win = new BrowserWindow({
-    ...setupWindowOptions(process.platform),
+    ...setupWindowOptions(process.platform, screen.getPrimaryDisplay().workAreaSize),
     ...(icon ? { icon } : {}),
     webPreferences: {
       preload: path.join(import.meta.dirname, "setup-preload.cjs"),
