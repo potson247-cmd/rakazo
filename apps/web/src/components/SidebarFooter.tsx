@@ -254,20 +254,6 @@ export function SidebarFooter({
           <AppMarkStack marks={logos.slice(0, markCount)} ringClassName="ring-sidebar-accent" />
         </Button>
       ) : null}
-      {/* A waiting update takes this slot; Skills stays in the account menu meanwhile. */}
-      {!mini && !update.available ? (
-        <IconTooltip label={t`Skills`}>
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label={t`Skills`}
-            onClick={onSkills}
-            className="size-9 shrink-0 bg-sidebar-accent hover:border-foreground/30 hover:bg-sidebar-accent dark:hover:bg-sidebar-accent"
-          >
-            <ScrollText aria-hidden="true" strokeWidth={1.75} />
-          </Button>
-        </IconTooltip>
-      ) : null}
       {update.available ? (
         <IconTooltip label={t`Install update`}>
           <Button
