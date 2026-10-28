@@ -125,10 +125,14 @@ vi.mock("@expo/ui/swift-ui", async () => {
 vi.mock("@expo/ui/swift-ui/modifiers", () => {
   const modifier = (name: string) => (value: unknown) => ({ name, value });
   return {
-    shapes: { roundedRectangle: (value: unknown) => ({ shape: "roundedRectangle", value }) },
+    shapes: {
+      roundedRectangle: (value: unknown) => ({ shape: "roundedRectangle", value }),
+      rectangle: () => ({ shape: "rectangle" }),
+    },
     ...Object.fromEntries(
       [
         "background",
+        "contentShape",
         "font",
         "foregroundStyle",
         "frame",

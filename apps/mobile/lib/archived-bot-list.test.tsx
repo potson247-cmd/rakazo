@@ -89,11 +89,12 @@ vi.mock("@expo/ui/swift-ui", () => {
 });
 vi.mock("@expo/ui/swift-ui/modifiers", () => {
   const modifier = (name: string) => (value: unknown) => ({ name, value });
-  return Object.fromEntries(
+  const modifiers = Object.fromEntries(
     [
       "accessibilityElement",
       "accessibilityLabel",
       "buttonStyle",
+      "contentShape",
       "disabled",
       "foregroundStyle",
       "frame",
@@ -103,6 +104,10 @@ vi.mock("@expo/ui/swift-ui/modifiers", () => {
       "tint",
     ].map((name) => [name, modifier(name)]),
   );
+  return {
+    ...modifiers,
+    shapes: { rectangle: () => ({ shape: "rectangle" }) },
+  };
 });
 vi.mock("react-native", () => ({ PlatformColor: (name: string) => ({ semantic: [name] }) }));
 vi.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ bottom: 0 }) }));
