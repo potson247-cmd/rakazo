@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import {
+  activeBotId,
+  captureScreenshot,
+  completeOnboarding,
+  expandAdvancedSection,
+  rpc,
+  signup,
+} from "./helpers";
 
 test("instruction proposals support edit, approval, undo and mandatory human approval", async ({
   page,
@@ -51,6 +58,7 @@ test("instruction proposals support edit, approval, undo and mandatory human app
     timeout: 30_000,
   });
   await page.getByTestId("bot-settings-trigger").click();
+  await expandAdvancedSection(page.getByTestId("bot-settings-advanced"));
   await page.getByRole("button", { name: "Instruction history", exact: true }).click();
   await expect(page.getByRole("button", { name: "Restore", exact: true }).first()).toBeVisible();
   await captureScreenshot(page, testInfo, "instruction-settings-history");

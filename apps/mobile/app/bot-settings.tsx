@@ -537,82 +537,6 @@ export default function BotSettingsScreen() {
             }}
           />
         </View>
-        <View style={{ marginTop: 16 }}>
-          <View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingEnd: 16,
-                marginBottom: 8,
-              }}
-            >
-              <SettingsSectionHeading>{t("Instructions")}</SettingsSectionHeading>
-              {bot?.instructionHistory?.length && instructions === bot.instructions ? (
-                <View style={{ width: 44 }}>
-                  <MenuPickerMenu
-                    label={t("Instruction history")}
-                    value=""
-                    choices={bot.instructionHistory.map((version) => ({
-                      key: version.id,
-                      label: `${new Date(version.createdAt).toLocaleString()} (${version.reason})`,
-                    }))}
-                    onChange={(versionId) => {
-                      if (pending || instructions !== bot.instructions) return;
-                      const version = bot.instructionHistory?.find((item) => item.id === versionId);
-                      if (version)
-                        Alert.alert(t("Restore"), version.instructions, [
-                          { text: t("Cancel"), style: "cancel" },
-                          {
-                            text: t("Restore"),
-                            onPress: () => {
-                              void rpc("bots/restoreInstructions", {
-                                botId: bot.id,
-                                versionId,
-                                expectedInstructions: bot.instructions,
-                              })
-                                .then((updated) => {
-                                  setBot(updated);
-                                  setInstructions(updated.instructions ?? "");
-                                })
-                                .catch((err) => setError(errorText(err)));
-                            },
-                          },
-                        ]);
-                    }}
-                  >
-                    <View
-                      accessible
-                      accessibilityRole="button"
-                      accessibilityLabel={t("Instruction history")}
-                      style={{
-                        minHeight: 44,
-                        minWidth: 44,
-                        alignItems: "flex-end",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <NativeSymbol
-                        ios="clock.arrow.circlepath"
-                        android="time-outline"
-                        size={18}
-                        color={tokens.mutedForeground}
-                      />
-                    </View>
-                  </MenuPickerMenu>
-                </View>
-              ) : null}
-            </View>
-            <GrowingTextInput
-              label={t("Instructions")}
-              maxLength={BOT_INSTRUCTIONS_MAX_LENGTH}
-              value={instructions}
-              onChangeText={setInstructions}
-              backgroundColor={native.fill}
-            />
-          </View>
-        </View>
         <View style={{ marginTop: 24 }}>
           <SettingsGroup label={t("Notifications")}>
             <View style={styles.row}>
@@ -748,6 +672,82 @@ export default function BotSettingsScreen() {
                 />
               </View>
             </SettingsGroup>
+            <View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingEnd: 16,
+                  marginBottom: 8,
+                }}
+              >
+                <SettingsSectionHeading>{t("Instructions")}</SettingsSectionHeading>
+                {bot?.instructionHistory?.length && instructions === bot.instructions ? (
+                  <View style={{ width: 44 }}>
+                    <MenuPickerMenu
+                      label={t("Instruction history")}
+                      value=""
+                      choices={bot.instructionHistory.map((version) => ({
+                        key: version.id,
+                        label: `${new Date(version.createdAt).toLocaleString()} (${version.reason})`,
+                      }))}
+                      onChange={(versionId) => {
+                        if (pending || instructions !== bot.instructions) return;
+                        const version = bot.instructionHistory?.find(
+                          (item) => item.id === versionId,
+                        );
+                        if (version)
+                          Alert.alert(t("Restore"), version.instructions, [
+                            { text: t("Cancel"), style: "cancel" },
+                            {
+                              text: t("Restore"),
+                              onPress: () => {
+                                void rpc("bots/restoreInstructions", {
+                                  botId: bot.id,
+                                  versionId,
+                                  expectedInstructions: bot.instructions,
+                                })
+                                  .then((updated) => {
+                                    setBot(updated);
+                                    setInstructions(updated.instructions ?? "");
+                                  })
+                                  .catch((err) => setError(errorText(err)));
+                              },
+                            },
+                          ]);
+                      }}
+                    >
+                      <View
+                        accessible
+                        accessibilityRole="button"
+                        accessibilityLabel={t("Instruction history")}
+                        style={{
+                          minHeight: 44,
+                          minWidth: 44,
+                          alignItems: "flex-end",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <NativeSymbol
+                          ios="clock.arrow.circlepath"
+                          android="time-outline"
+                          size={18}
+                          color={tokens.mutedForeground}
+                        />
+                      </View>
+                    </MenuPickerMenu>
+                  </View>
+                ) : null}
+              </View>
+              <GrowingTextInput
+                label={t("Instructions")}
+                maxLength={BOT_INSTRUCTIONS_MAX_LENGTH}
+                value={instructions}
+                onChangeText={setInstructions}
+                backgroundColor={native.fill}
+              />
+            </View>
             <SettingsGroup label={t("How other bots see it")}>
               <GrowingTextInput
                 label={t("How other bots see it")}

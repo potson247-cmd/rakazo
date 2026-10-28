@@ -117,17 +117,13 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
     exact: true,
   });
   await expect(notificationsHeading).toBeVisible();
-  const instructionsHeading = settings.locator('label[for$="-instructions"]');
+  const advancedTrigger = settings.getByRole("button", { name: "Advanced", exact: true });
   for (const property of ["font-size", "font-weight", "color"]) {
-    const expected = await instructionsHeading.evaluate(
+    const expected = await advancedTrigger.evaluate(
       (node, prop) => getComputedStyle(node).getPropertyValue(prop),
       property,
     );
     await expect(notificationsHeading).toHaveCSS(property, expected);
-    await expect(settings.getByRole("button", { name: "Advanced", exact: true })).toHaveCSS(
-      property,
-      expected,
-    );
   }
   await expect(settings.getByRole("button", { name: "Advanced", exact: true })).toHaveCSS(
     "background-color",

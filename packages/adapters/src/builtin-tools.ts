@@ -1364,7 +1364,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "update_bot",
     description:
-      "Update this bot's own name (header and list label), description, avatar (profile picture or color/shape), or notifyOnFinish. Call this when the user asks you to rename yourself, change your description, change your profile picture, or turn finish notifications on or off. Do not claim you updated the profile without calling this tool.",
+      "Update this bot's own name (header and list label), description, first instructions, avatar (profile picture or color/shape), or notifyOnFinish. Call this when the user asks you to rename yourself, change your description, change your profile picture, or turn finish notifications on or off. Do not claim you updated the profile without calling this tool.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1395,6 +1395,12 @@ export const builtinAgentTools: ConnectorTool[] = [
         notifyOnFinish: {
           type: "boolean",
           description: "true notifies the user when this bot finishes a run; false silences that.",
+        },
+        instructions: {
+          type: "string",
+          maxLength: BOT_INSTRUCTIONS_MAX_LENGTH,
+          description:
+            "How you do your job: your private operating instructions. Only while you have none; to change them later, use propose_instructions_update.",
         },
         bot_id: {
           type: "string",

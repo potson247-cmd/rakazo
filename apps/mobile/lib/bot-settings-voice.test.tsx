@@ -680,6 +680,7 @@ describe("bot settings device voice menu", () => {
       "Read replies aloud",
       "Device voice",
       "Manage the bots it creates",
+      "Instructions",
     ]) {
       expect(container.textContent).not.toContain(label);
     }
@@ -688,14 +689,11 @@ describe("bot settings device voice menu", () => {
     expect(trigger.getAttribute("role")).toBe("button");
     expect(JSON.parse(trigger.dataset.style!)).toMatchObject({ marginTop: 24, minHeight: 44 });
     const headings = [...container.querySelectorAll<HTMLElement>('[role="header"]')];
-    expect(headings.map((heading) => heading.textContent)).toEqual([
-      "Instructions",
-      "Notifications",
-    ]);
+    expect(headings.map((heading) => heading.textContent)).toEqual(["Notifications"]);
     expect(trigger.querySelector('[data-ios="chevron.right"]')).not.toBeNull();
-    expect(container.querySelector('[aria-label="Instructions"]')).not.toBeNull();
-    expect(container.textContent).not.toContain("Model");
+    expect(container.querySelector('[aria-label="Instructions"]')).toBeNull();
     await expand();
+    expect(container.querySelector('[aria-label="Instructions"]')).not.toBeNull();
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(trigger.querySelector('[data-ios="chevron.down"]')).not.toBeNull();
     expect(JSON.parse((trigger.nextElementSibling as HTMLElement).dataset.style!)).toMatchObject({

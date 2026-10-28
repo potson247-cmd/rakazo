@@ -539,7 +539,6 @@ export function BotSettings({
           }}
         />
       </div>
-      <InstructionSettings key={bot.id} bot={bot} />
       <section className="mt-6">
         <h3 className="mb-2 text-xs font-medium text-muted-foreground">
           <Trans>Notifications</Trans>
@@ -744,6 +743,7 @@ export function BotSettings({
                 />
               </div>
             </SettingsGroup>
+            <InstructionSettings key={bot.id} bot={bot} />
             <SettingsGroup label={t`How other bots see it`} plain>
               <Textarea
                 id={`${ids}-description`}

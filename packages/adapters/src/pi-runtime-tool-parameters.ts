@@ -105,6 +105,7 @@ function builtinParameters(tool: ConnectorTool) {
     return Type.Object({
       name: Type.Optional(Type.String()),
       description: Type.Optional(Type.String()),
+      instructions: Type.Optional(Type.String()),
       color: Type.Optional(Type.String()),
       artifact_id: Type.Optional(Type.String()),
       use_attached_image: Type.Optional(Type.Boolean()),
@@ -327,9 +328,7 @@ export function prepareFleetArguments(
   }
   const out: Record<string, unknown> = {};
   for (const key of FLEET_STRING_ARGS) {
-    // update_bot never carries instructions; set_child_instructions does, behind a card.
-    if (toolName === "update_bot" && (key === "instructions" || key === "expected_version"))
-      continue;
+    if (toolName === "update_bot" && key === "expected_version") continue;
     if (argumentGiven(raw[key])) out[key] = String(raw[key]);
   }
   for (const key of FLEET_LIST_ARGS) {

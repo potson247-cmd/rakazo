@@ -262,9 +262,14 @@ function fixture({
         computerId: "computer-1",
         computer: { id: "computer-1", scope: "dedicated" },
       })),
-      update: vi.fn(async ({ data }: { data: Record<string, unknown> }) =>
-        Object.assign(instructionState, data),
-      ),
+      update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        id: run.botId,
+        name: bot.name,
+        description: bot.description,
+        color: "#8B5CF6",
+        notifyOnFinish: true,
+        ...Object.assign(instructionState, data),
+      })),
       updateMany: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         Object.assign(instructionState, data);
         return { count: 1 };
@@ -293,7 +298,9 @@ function fixture({
       update: vi.fn(async () => ({ nextMessageSeq: 2, nextEventSeq: 2 })),
     },
     message: {
-      findFirst: vi.fn(async () => null),
+      findFirst: vi.fn(
+        async (_query?: { where?: { OR?: unknown } }): Promise<{ id: string } | null> => null,
+      ),
       findUnique: vi.fn(async () =>
         sourceRole ? { role: sourceRole, blocks: [{ kind: "text", text: prompt }] } : null,
       ),
@@ -1190,6 +1197,101 @@ describe("create_space", () => {
     await skipped.run(true);
     expect(skipped.pauseRunForInput).not.toHaveBeenCalled();
     expect(skipped.effects[0]?.status).not.toBe("intended");
+  });
+});
+
+describe("first instructions through update_bot", () => {
+  const first = "Draft only. Ask before sending.";
+  function emptyBot(options: Parameters<typeof fixture>[0] = {}) {
+    const f = fixture({ name: "update_bot", builtin: true, ...options });
+    f.instructionState.instructions = "";
+    f.setCalls([{ args: { instructions: first }, executionId: "call-1" }]);
+    return f;
+  }
+  it.each(["user", "created"])(
+    "sets a bot's first instructions without a card in a %s run",
+    async (trigger) => {
+      const f = emptyBot({ trigger });
+      await f.run();
+      expect(f.pauseRunForInput).not.toHaveBeenCalled();
+      expect(f.results).toEqual([{ ok: true }]);
+      expect(f.instructionState.instructions).toBe(first);
+      expect(f.instructionState.instructionHistory).toHaveLength(1);
+    },
+  );
+  it("sets them on a later attempt, as when the owner answers the intro question", async () => {
+    const f = emptyBot();
+    f.prisma.attempt.count.mockResolvedValue(2);
+    await f.run();
+    expect(f.results).toEqual([{ ok: true }]);
+    expect(f.instructionState.instructions).toBe(first);
+  });
+  it("sets them after a profile edit earlier in the run", async () => {
+    const f = emptyBot();
+    f.setCalls([
+      { args: { description: "Drafts replies" }, executionId: "call-1" },
+      { args: { instructions: first }, executionId: "call-2" },
+    ]);
+    await f.run();
+    expect(f.results.at(-1)).toEqual({ ok: true });
+    expect(f.instructionState.instructions).toBe(first);
+  });
+  it("leaves instructions unset when another field in the same call is rejected", async () => {
+    const f = emptyBot();
+    f.setCalls([{ args: { name: "N".repeat(200), instructions: first }, executionId: "call-1" }]);
+    await f.run();
+    expect(f.results[0]).toMatchObject({ error: expect.stringContaining("name") });
+    expect(f.instructionState.instructions).toBe("");
+  });
+  it("refuses when the chat already holds outside messages", async () => {
+    const f = emptyBot();
+    f.prisma.message.findFirst.mockImplementation(async (query?: { where?: { OR?: unknown } }) =>
+      query?.where?.OR ? { id: "channel-message" } : null,
+    );
+    await f.run();
+    expect(f.results).toEqual([
+      { error: "Propose your instructions with propose_instructions_update." },
+    ]);
+    expect(f.instructionState.instructions).toBe("");
+  });
+  it("refuses when an outside run already wrote in the chat", async () => {
+    const f = emptyBot();
+    f.prisma.run.findFirst.mockImplementation(
+      async (query?: { where?: { trigger?: { in?: string[] } } }) =>
+        query?.where?.trigger?.in?.includes("webhook") ? { id: "webhook-run" } : null,
+    );
+    await f.run();
+    expect(f.instructionState.instructions).toBe("");
+  });
+  it("leaves instructions that already exist to a proposal", async () => {
+    const f = emptyBot();
+    f.instructionState.instructions = "Draft only";
+    await f.run();
+    expect(f.results).toEqual([
+      { error: "You already have instructions; change them with propose_instructions_update." },
+    ]);
+    expect(f.instructionState.instructions).toBe("Draft only");
+  });
+  it.each(["user", "created"])("refuses once outside content entered a %s run", async (trigger) => {
+    const f = emptyBot({ trigger });
+    f.claimedOutsideSteering(true);
+    await f.run();
+    expect(f.results).toEqual([
+      { error: "Propose your instructions with propose_instructions_update." },
+    ]);
+    expect(f.instructionState.instructions).toBe("");
+  });
+  it("refuses in a run the owner did not start", async () => {
+    const f = emptyBot({ trigger: "webhook" });
+    await f.run();
+    expect(f.instructionState.instructions).toBe("");
+  });
+  it("refuses known credentials", async () => {
+    const f = emptyBot({ secrets: ["fake-credential-value"] });
+    f.setCalls([{ args: { instructions: "Use fake-credential-value" }, executionId: "call-1" }]);
+    await f.run();
+    expect(f.results).toEqual([{ error: "Instructions cannot contain credentials." }]);
+    expect(f.instructionState.instructions).toBe("");
   });
 });
 

@@ -796,6 +796,9 @@ export async function updateChildBot(
   if (argumentGiven(args.artifact_id) || args.use_attached_image === true) {
     return { error: "artifact_id and use_attached_image work only on yourself." };
   }
+  if (argumentGiven(args.instructions)) {
+    return { error: "Change another bot's instructions with set_child_instructions." };
+  }
   const profile = {
     name: argumentGiven(args.name) ? args.name : undefined,
     description: argumentGiven(args.description) ? args.description : undefined,

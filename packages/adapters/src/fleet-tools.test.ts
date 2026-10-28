@@ -1179,7 +1179,7 @@ describe("updateChildBot", () => {
         expected_version: "version-2",
       }),
     ).toEqual({
-      error: "Provide at least one of name, description, notify_on_finish, or color.",
+      error: "Change another bot's instructions with set_child_instructions.",
     });
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });

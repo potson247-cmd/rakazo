@@ -266,10 +266,11 @@ it("shows the main sections and keeps only rare controls in Advanced", async () 
   expect(container.querySelector('[id$="-model"]')).toBeNull();
   expect(container.querySelector('[id$="-thinking"]')).toBeNull();
   expect(container.querySelector('[id$="-auto-speak"]')).toBeNull();
-  expect(container.querySelector('textarea[id$="-instructions"]')).not.toBeNull();
+  expect(container.querySelector('textarea[id$="-instructions"]')).toBeNull();
   await act(async () =>
     advanced.querySelector<HTMLButtonElement>("button[aria-expanded]")?.click(),
   );
+  expect(advanced.querySelector('textarea[id$="-instructions"]')).not.toBeNull();
   expect(
     container
       .querySelector('[id$="-disabled-tools"]')

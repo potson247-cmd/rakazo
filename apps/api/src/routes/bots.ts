@@ -184,7 +184,7 @@ export function botIntroPrompt(input: {
       : `Greet them by first name in a few words and ask in one sentence what they want you for, suggesting ${options}.`,
     "If your profile already makes that clear, say in one line what you will do instead of asking.",
     canUpdate
-      ? 'Once you know what you are for, use update_bot to set your description to one line on what you do, and a short name if yours is still a placeholder like "New Bot". Leave them unset if the answer is too vague, and otherwise keep your name and look.'
+      ? 'Once you know what you are for, use update_bot to set what is already clear: a one-line description of what you do, your instructions on how you do it, and a short name if yours is still a placeholder like "New Bot". Leave anything vague unset to fill in later as the work becomes clearer, and otherwise keep your name and look.'
       : undefined,
     "Then get started, asking one follow-up only if you cannot start without it.",
   ]
