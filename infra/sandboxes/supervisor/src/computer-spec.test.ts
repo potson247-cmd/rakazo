@@ -27,6 +27,7 @@ import {
   computerBridgeNameFor,
   computerDnsMatches,
   computerHomeStorage,
+  computerMountsMatch,
   computerNetworkCreateOptions,
   computerNetworkNameFor,
   computerNetworkNamesForCleanup,
@@ -43,6 +44,7 @@ import {
   resolveComputerDns,
   resolveComputerEgressMode,
   resolveComputerImage,
+  resolveComputerMounts,
   resolveScreenNetworkMode,
   resolveScreenPublishTarget,
   resolveSpaceComputerLimit,
@@ -202,6 +204,143 @@ describe("graphical computer spec", () => {
     expect(containerCreateOptions({ ...base, dns: ["1.1.1.1"] }).HostConfig).toMatchObject({
       Dns: ["1.1.1.1"],
     });
+  });
+
+  it("parses computer host mounts, with none when unset", () => {
+    expect(resolveComputerMounts(undefined)).toEqual([]);
+    expect(resolveComputerMounts(" , ")).toEqual([]);
+    expect(
+      resolveComputerMounts("/srv/docs:/mnt/docs:ro, /srv/shares/:/media/shares:rw:rslave"),
+    ).toEqual([
+      { source: "/srv/docs", target: "/mnt/docs", readOnly: true },
+      { source: "/srv/shares", target: "/media/shares", readOnly: false, propagation: "rslave" },
+    ]);
+    for (const value of [
+      "/srv/docs",
+      "srv/docs:/mnt/docs",
+      "/srv/docs:mnt/docs",
+      "/:/mnt/host",
+      "/srv/docs:/home/rakazo/docs",
+      "/srv/docs:/mnt",
+      "/srv/docs:/usr/local/bin",
+      "/srv/docs:/mnt/../etc/docs",
+      "/srv/docs:/mnt/docs:shared",
+      "/srv/docs:/mnt/docs:ro:rw",
+      "/srv/a:/mnt/docs,/srv/b:/mnt/docs/inner",
+      "/srv/a:/mnt/docs,/srv/b:/mnt/docs",
+    ])
+      expect(() => resolveComputerMounts(value)).toThrow(/SANDBOX_COMPUTER_MOUNTS/);
+  });
+
+  it("adds host mounts beside either kind of home", () => {
+    const base = {
+      name: "rakazo-bot-x",
+      image: "img",
+      botId: "x",
+      spaceId: "s",
+      homePath: "/data/x",
+    };
+    const mounts = resolveComputerMounts(
+      "/srv/docs:/mnt/docs:ro,/srv/shares:/mnt/shares:rw:rslave",
+    );
+    const expected = [
+      { Type: "bind", Source: "/srv/docs", Target: "/mnt/docs", ReadOnly: true },
+      {
+        Type: "bind",
+        Source: "/srv/shares",
+        Target: "/mnt/shares",
+        ReadOnly: false,
+        BindOptions: { Propagation: "rslave" },
+      },
+    ];
+    expect(containerCreateOptions(base).HostConfig.Mounts).toBeUndefined();
+    const bound = containerCreateOptions({ ...base, mounts }).HostConfig;
+    expect(bound.Binds).toEqual(["/data/x:/home/rakazo"]);
+    expect(bound.Mounts).toEqual(expected);
+    const volume = containerCreateOptions({
+      ...base,
+      homeVolume: { name: "appdata", subpath: "homes/x" },
+      mounts,
+    }).HostConfig;
+    expect(volume.Mounts?.[0]).toMatchObject({ Type: "volume", Target: "/home/rakazo" });
+    expect(volume.Mounts?.slice(1)).toEqual(expected);
+  });
+
+  it("matches a computer's host mounts to the configured ones", () => {
+    const desired = resolveComputerMounts(
+      "/srv/docs:/mnt/docs:ro,/srv/shares:/mnt/shares:rw:rslave",
+    );
+    const home = { Type: "bind", Source: "/data/x", Target: "/home/rakazo" };
+    const docs = { Type: "bind", Source: "/srv/docs", Target: "/mnt/docs", ReadOnly: true };
+    const shares = {
+      Type: "bind",
+      Source: "/srv/shares",
+      Target: "/mnt/shares",
+      ReadOnly: false,
+      BindOptions: { Propagation: "rslave" },
+    };
+    const match = (mounts: unknown[] | undefined, want = desired) =>
+      computerMountsMatch(mounts as Parameters<typeof computerMountsMatch>[0], want);
+    expect(match(undefined, [])).toBe(true);
+    expect(match([home], [])).toBe(true);
+    expect(match([home, shares, docs])).toBe(true);
+    // A computer created before a mount was added, or after one was removed, is replaced.
+    expect(match([home, docs])).toBe(false);
+    expect(match([home, docs, shares], desired.slice(0, 1))).toBe(false);
+    // So is one whose mount changed access or propagation.
+    expect(match([home, { ...docs, ReadOnly: false }, shares])).toBe(false);
+    expect(match([home, docs, { ...shares, BindOptions: undefined }])).toBe(false);
+  });
+
+  it("mounts read-only unless rw is explicit", () => {
+    expect(resolveComputerMounts("/srv/docs:/mnt/docs")[0]?.readOnly).toBe(true);
+    // Later mounts propagated by rslave keep their own write flags.
+    for (const value of ["/srv/docs:/mnt/docs:rslave", "/srv/docs:/mnt/docs:ro:rslave"])
+      expect(() => resolveComputerMounts(value)).toThrow(/rslave requires rw/);
+    expect(resolveComputerMounts("/srv/docs:/mnt/docs:rw")[0]?.readOnly).toBe(false);
+  });
+
+  it("refuses host sources that expose the host, Docker or bot homes", () => {
+    for (const source of [
+      "/",
+      "/var/run/docker.sock",
+      "/run/docker.sock",
+      "/var/run",
+      "/run",
+      "/run/user/1000",
+      "/proc",
+      "/sys/fs",
+      "/dev",
+      "/etc",
+      "/etc/ssh",
+      "/boot",
+      "/root",
+      "/var/lib/docker",
+      "/var/lib/docker/volumes/appdata/_data",
+      // Ancestors expose what they hold.
+      "/var",
+      "/var/lib",
+      "//etc/",
+    ])
+      expect(() => resolveComputerMounts(`${source}:/mnt/x`)).toThrow(
+        /SANDBOX_COMPUTER_MOUNTS source/,
+      );
+    for (const value of ["/srv/../etc:/mnt/x", "/srv/docs/..:/mnt/x", "/srv/docs:/mnt/a/../x"])
+      expect(() => resolveComputerMounts(value)).toThrow(/must not contain \.\./);
+
+    const protectedPaths = ["/opt/rakazo/data", "/home/op/.docker/run/docker.sock", undefined];
+    for (const source of [
+      "/opt/rakazo/data",
+      "/opt/rakazo/data/homes/bot",
+      "/opt/rakazo",
+      "/home/op",
+    ])
+      expect(() => resolveComputerMounts(`${source}:/mnt/x`, protectedPaths)).toThrow(
+        /protected host path/,
+      );
+    expect(
+      resolveComputerMounts("/opt/shared:/mnt/x,/varnish:/mnt/y,/srv/run:/mnt/z", protectedPaths),
+    ).toHaveLength(3);
   });
 
   it("matches a computer's DNS servers to the configured ones", () => {
