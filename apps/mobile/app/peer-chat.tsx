@@ -3,9 +3,10 @@ import type { PeerConversation } from "@rakazo/core";
 import { displayName, loadPeerHistory, peerConversations } from "@rakazo/core";
 import { typeScale } from "@rakazo/ui-tokens";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { glassHeaderOptions } from "../components/glass-title";
+import { LatestMessageList } from "../components/latest-message-list";
 import { rpc } from "../lib/api";
 import { mobileTokens } from "../lib/appearance";
 import { useI18n } from "../lib/i18n";
@@ -59,48 +60,58 @@ export default function PeerChat() {
   }, [botId, peerBotId, attempt]);
 
   const chat = state.kind === "ready" ? state.chat : null;
+  const latestMessages = useMemo(() => [...(chat?.messages ?? [])].reverse(), [chat]);
   const peerName = displayName(chat?.peerBotName ?? params.peerBotName, t("Bot"));
   return (
-    <ScrollView
-      style={[styles.screen, sideInsets]}
-      contentContainerStyle={styles.content}
-      contentInsetAdjustmentBehavior="automatic"
-    >
+    <>
       <Stack.Screen options={glassHeaderOptions(`${botName}, ${peerName}`)} />
-      {state.kind === "loading" ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={tokens.mutedForeground} />
-        </View>
-      ) : state.kind === "failed" ? (
-        <View style={styles.center}>
-          <Text style={styles.muted}>{t("Could not load this chat.")}</Text>
-          <Pressable accessibilityRole="button" onPress={retry} hitSlop={8}>
-            <Text style={styles.retry}>{t("Try again")}</Text>
-          </Pressable>
-        </View>
-      ) : !chat?.messages.length ? (
-        <View style={styles.center}>
-          <Text style={styles.muted}>{t("No messages yet")}</Text>
-        </View>
+      {chat?.messages.length ? (
+        <LatestMessageList
+          key={`${botId}:${peerBotId}`}
+          style={[styles.screen, sideInsets]}
+          contentContainerStyle={[styles.content, styles.latestContent]}
+          contentInsetAdjustmentBehavior="automatic"
+          data={latestMessages}
+          keyExtractor={(item, index) => `${item.messageId}-${index}`}
+          renderItem={({ item }) => {
+            const sent = item.direction === "sent";
+            return (
+              <View style={[styles.bubble, sent ? styles.sent : styles.received]}>
+                <Text style={styles.speaker} numberOfLines={1}>
+                  {sent ? botName : peerName}
+                </Text>
+                <ChatMarkdown palette={tokens} colorScheme={colorScheme}>
+                  {item.text}
+                </ChatMarkdown>
+              </View>
+            );
+          }}
+        />
       ) : (
-        chat.messages.map((item, index) => {
-          const sent = item.direction === "sent";
-          return (
-            <View
-              key={`${item.messageId}-${index}`}
-              style={[styles.bubble, sent ? styles.sent : styles.received]}
-            >
-              <Text style={styles.speaker} numberOfLines={1}>
-                {sent ? botName : peerName}
-              </Text>
-              <ChatMarkdown palette={tokens} colorScheme={colorScheme}>
-                {item.text}
-              </ChatMarkdown>
+        <ScrollView
+          style={[styles.screen, sideInsets]}
+          contentContainerStyle={styles.content}
+          contentInsetAdjustmentBehavior="automatic"
+        >
+          {state.kind === "loading" ? (
+            <View style={styles.center}>
+              <ActivityIndicator color={tokens.mutedForeground} />
             </View>
-          );
-        })
+          ) : state.kind === "failed" ? (
+            <View style={styles.center}>
+              <Text style={styles.muted}>{t("Could not load this chat.")}</Text>
+              <Pressable accessibilityRole="button" onPress={retry} hitSlop={8}>
+                <Text style={styles.retry}>{t("Try again")}</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.center}>
+              <Text style={styles.muted}>{t("No messages yet")}</Text>
+            </View>
+          )}
+        </ScrollView>
       )}
-    </ScrollView>
+    </>
   );
 }
 
@@ -109,6 +120,7 @@ function createStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: native.page },
     content: { flexGrow: 1, paddingHorizontal: 16, paddingVertical: 16, gap: 10 },
+    latestContent: { justifyContent: "flex-end" },
     center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
     muted: { color: tokens.mutedForeground, ...typeScale.body, textAlign: "center" },
     retry: { color: tokens.link, ...typeScale.body },

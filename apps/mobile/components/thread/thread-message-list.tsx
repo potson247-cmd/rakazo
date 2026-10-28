@@ -3,11 +3,12 @@ import { threadWindowMessages } from "@rakazo/core";
 import type { ReactElement, ReactNode } from "react";
 import { useMemo } from "react";
 import type { ListRenderItem } from "react-native";
-import { ActivityIndicator, FlatList, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from "react-native";
 import type { MobileMessage } from "../../lib/api";
 import { mobileTokens } from "../../lib/appearance";
 import type { ThreadListScroll } from "../../lib/thread-list-scroll";
 import type { useThreadPaging } from "../../lib/thread-paging";
+import { LatestMessageList } from "../latest-message-list";
 import { ThreadScrollSurface } from "../thread-scroll-surface";
 import { JumpToLatestButton } from "./thread-list-controls";
 
@@ -15,7 +16,6 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
 });
 const messageListPosition = { minIndexForVisible: 0 };
-const liveMessageListPosition = { ...messageListPosition, autoscrollToTopThreshold: 80 };
 function threadItemKey(item: ThreadItem<MobileMessage>) {
   return item.kind === "voiceChat" ? item.key : item.message.id;
 }
@@ -108,11 +108,10 @@ export function ThreadMessageList({
         </ThreadScrollSurface>
       ) : (
         <ThreadScrollSurface key={`live:${threadKey}`}>
-          <FlatList
+          <LatestMessageList
             key={threadKey}
             ref={scroll.list}
             data={liveItems}
-            inverted
             keyExtractor={threadItemKey}
             // This callback tracks every row input, including reply, reaction and highlight state.
             extraData={renderMessageRow}
@@ -121,8 +120,6 @@ export function ThreadMessageList({
             keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
             // Inverted, so the bottom padding is the visual top, clear of the transparent header.
             contentContainerStyle={listContentStyle}
-            // Follow changes to the recovery card while already at the newest content.
-            maintainVisibleContentPosition={liveMessageListPosition}
             scrollEventThrottle={16}
             {...scroll.liveListHandlers}
             ListFooterComponent={loadEarlierControl}

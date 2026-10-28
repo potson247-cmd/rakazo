@@ -12,9 +12,10 @@ import {
   Spinner,
 } from "@rakazo/ui-web";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useSpaceQueries } from "../lib/query";
 import { rpc } from "../lib/rpc";
+import { snapTranscriptToEndAfterFrame } from "../lib/transcript-scroll";
 
 /**
  * Full-screen view-only transcript of a bot-to-bot exchange.
@@ -42,6 +43,11 @@ export function PeerMessagesOverlay({
   onClose: () => void;
 }) {
   const { t } = useLingui();
+  const transcript = useRef<HTMLDivElement | null>(null);
+  const openTranscript = useCallback((element: HTMLDivElement | null) => {
+    transcript.current = element;
+    snapTranscriptToEndAfterFrame(transcript);
+  }, []);
   const queries = useSpaceQueries();
   const history = useQuery({
     queryKey: [
@@ -129,6 +135,7 @@ export function PeerMessagesOverlay({
           </div>
         ) : (
           <div
+            ref={openTranscript}
             data-testid="peer-conversation-transcript"
             className="rk-scroll flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-5 md:px-7 md:py-6"
           >
