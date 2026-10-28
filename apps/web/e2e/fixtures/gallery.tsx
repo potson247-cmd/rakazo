@@ -399,7 +399,7 @@ const team: Scenario = {
         intent: "request",
       },
     ]),
-    bot([
+    message("user", [
       {
         kind: "bot_message_received",
         fromBotId: SCOUT.botId,

@@ -62,18 +62,19 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
     timeout: 60_000,
   });
   await expect(transcript.getByText("peer-exchange-alpha")).toHaveCount(2);
-  const assertChipLeftAligned = async () => {
+  const assertChipCentered = async () => {
     const transcriptBox = await transcript.boundingBox();
     const chipBox = await chip.boundingBox();
     expect(transcriptBox).not.toBeNull();
     expect(chipBox).not.toBeNull();
-    // Transcript padding is 16px mobile / 28px desktop; centering must fail this assertion.
-    expect(chipBox!.x - transcriptBox!.x).toBeLessThanOrEqual(32);
+    const chipCenter = chipBox!.x + chipBox!.width / 2;
+    const transcriptCenter = transcriptBox!.x + transcriptBox!.width / 2;
+    expect(Math.abs(chipCenter - transcriptCenter)).toBeLessThanOrEqual(8);
     // Stay under 75% of the transcript width so the chip cannot become a full-width bar.
     expect(chipBox!.width).toBeLessThan(transcriptBox!.width * 0.75);
   };
 
-  await assertChipLeftAligned();
+  await assertChipCentered();
   await expect(composer).toBeVisible();
   await captureScreenshot(page, testInfo, "peer-chip-desktop");
 
@@ -81,7 +82,7 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await chip.scrollIntoViewIfNeeded();
   await expect(chip).toBeVisible();
   await expect(composer).toBeVisible();
-  await assertChipLeftAligned();
+  await assertChipCentered();
   await captureScreenshot(page, testInfo, "peer-chip-mobile");
 
   await chip.focus();

@@ -328,7 +328,7 @@ const MessageBubbleContent = memo(function MessageBubbleContent({
           width: "100%",
           paddingVertical: 4,
           alignItems: "center",
-          justifyContent: "flex-start",
+          justifyContent: "center",
           flexDirection: "row",
           gap: 6,
         }}
