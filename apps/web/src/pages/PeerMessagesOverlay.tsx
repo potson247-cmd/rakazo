@@ -12,9 +12,10 @@ import {
   Spinner,
 } from "@rakazo/ui-web";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useSpaceQueries } from "../lib/query";
 import { rpc } from "../lib/rpc";
+import { transcriptIsNearEnd } from "../lib/transcript-scroll";
 
 /**
  * Full-screen view-only transcript of a bot-to-bot exchange.
@@ -65,6 +66,13 @@ export function PeerMessagesOverlay({
     return peerConversations(history.data).find((entry) => entry.peerBotId === peerBotId) ?? null;
   }, [history.data, peerBotId]);
   const peerBotName = conversation?.peerBotName ?? initialPeerBotName;
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const followingEnd = useRef(true);
+  // Opens at the latest message like the chat transcript, and follows a refresh while still there.
+  useLayoutEffect(() => {
+    const element = transcriptRef.current;
+    if (element && conversation && followingEnd.current) element.scrollTop = element.scrollHeight;
+  }, [conversation]);
 
   return (
     <Dialog
@@ -129,7 +137,11 @@ export function PeerMessagesOverlay({
           </div>
         ) : (
           <div
+            ref={transcriptRef}
             data-testid="peer-conversation-transcript"
+            onScroll={(event) => {
+              followingEnd.current = transcriptIsNearEnd(event.currentTarget);
+            }}
             className="rk-scroll flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-5 md:px-7 md:py-6"
           >
             {conversation.messages.map((peerMessage, index) => {
