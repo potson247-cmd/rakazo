@@ -416,3 +416,61 @@ test("keeps a website login password on one line", async ({ page, context }) => 
       ],
     ]);
 });
+
+test("uses a login for this run only when Save to Vault is turned off on its card", async ({
+  page,
+}, testInfo) => {
+  const stamp = Date.now();
+  await signup(page, `login-once-${stamp}@rakazo.test`, "password12", "Login Once");
+  await completeOnboarding(page);
+
+  const botId = activeBotId(page);
+  await page.getByPlaceholder(/Message/).fill("show a login card");
+  await page.keyboard.press("Enter");
+  await expect
+    .poll(
+      async () => {
+        const snapshot = await rpc<{ run?: { status: string } | null }>(page, "threads/get", {
+          botId,
+        });
+        return snapshot.run?.status ?? null;
+      },
+      { timeout: 60_000 },
+    )
+    .toBe("waiting_input");
+
+  const card = page.getByTestId("secret-ask-card");
+  if ((await card.count()) === 0) {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByPlaceholder(/Message/)).toBeVisible({ timeout: 15_000 });
+  }
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  const saveToVault = card.getByRole("switch", { name: "Save to Vault" });
+  await expect(saveToVault).toBeChecked();
+  await expect(card.getByRole("button", { name: "Save", exact: true })).toBeVisible();
+
+  const username = card.getByLabel("Username", { exact: true });
+  const password = `fake-login-password-${stamp}`;
+  await username.fill(`fake-user-${stamp}@example.test`);
+  await card.getByLabel("Password", { exact: true }).fill(password);
+  await saveToVault.click();
+  await expect(saveToVault).not.toBeChecked();
+  // Turning it off keeps what was typed.
+  await expect(username).toHaveValue(`fake-user-${stamp}@example.test`);
+  const send = card.getByRole("button", { name: "Continue", exact: true });
+  await expect(send).toBeEnabled();
+  await captureScreenshot(page, testInfo, "login-card-save-off");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(saveToVault).toBeVisible();
+  await captureScreenshot(page, testInfo, "login-card-save-off-narrow");
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  await send.click();
+  await expect(card.getByText("Sent", { exact: true })).toBeVisible({ timeout: 30_000 });
+  // Nothing went into the vault, and the answered card still reads Sent after a reload.
+  expect(await rpc<unknown[]>(page, "vault/list", { scope: "account" })).toHaveLength(0);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(card.getByText("Sent", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(password)).toHaveCount(0);
+  await captureScreenshot(page, testInfo, "login-card-sent");
+});

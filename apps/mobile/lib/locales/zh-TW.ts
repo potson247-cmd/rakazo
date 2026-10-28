@@ -192,6 +192,7 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
   expired: "已過期",
 
   Saved: "已儲存",
+  Sent: "已傳送",
   " (unread)": "（未讀）",
   Appearance: "外觀",
   Dark: "深色",
@@ -393,6 +394,7 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
   "Could not save the server URL": "無法儲存伺服器網址",
   "Could not send reset email": "無法傳送重設郵件",
   "Could not send answer": "無法傳送回答",
+  "Save to Vault": "儲存到保險庫",
   "Could not share file": "無法分享檔案",
   "Could not sign out": "無法登出",
   "Could not speak": "無法朗讀",

@@ -1668,6 +1668,7 @@ msgstr "Contém código para executar"
 msgid "Context limit"
 msgstr "Limite de contexto"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -5022,6 +5023,10 @@ msgstr ""
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "Salvar o espaço de trabalho e instalar o software atual."
+
+#: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "Salvar no cofre"
 
 #: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx

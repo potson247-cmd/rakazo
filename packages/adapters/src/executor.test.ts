@@ -1087,6 +1087,7 @@ function compatiblePrismaParts(modelId: string, plaintext: string) {
       },
       deploymentSettings: { findUnique: vi.fn(async () => null) },
       secret: {
+        findMany: vi.fn(async () => []),
         findFirst: vi.fn(async () => ({ id: "secret-compat", ciphertext: plaintext })),
         findUnique: vi.fn(async () => null),
       },
@@ -1166,6 +1167,7 @@ function pinnedRoutineRunPrisma(modelId: string) {
     task: { findUniqueOrThrow: vi.fn(async () => ({ id: "task-1", prompt: "hello" })) },
     connection: { findMany: vi.fn(async () => []) },
     taughtSkill: { findMany: vi.fn(async () => []) },
+    secret: { findMany: vi.fn(async () => []) },
     vaultCredential: { findMany: vi.fn(async () => []) },
     agentSkill: { findMany: vi.fn(async () => []) },
     scratchpadItem: { findMany: vi.fn(async () => []) },
@@ -2882,6 +2884,7 @@ description: Prepare standup notes
           ),
         },
         secret: {
+          findMany: vi.fn(async () => []),
           findFirst: vi.fn(async () =>
             plaintext === undefined
               ? null
@@ -3015,6 +3018,7 @@ description: Prepare standup notes
       userModelCredential: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
       deploymentSettings: { findUnique: vi.fn(async () => null) },
       taughtSkill: { findMany: vi.fn(async () => []) },
+      secret: { findMany: vi.fn(async () => []) },
       vaultCredential: { findMany: vi.fn(async () => []) },
       agentSkill: { findMany: vi.fn(async () => []) },
       scratchpadItem: { findMany: vi.fn(async () => []) },
@@ -3132,6 +3136,7 @@ description: Prepare standup notes
       userModelCredential: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
       deploymentSettings: { findUnique: vi.fn(async () => null) },
       taughtSkill: { findMany: vi.fn(async () => []) },
+      secret: { findMany: vi.fn(async () => []) },
       vaultCredential: { findMany: vi.fn(async () => []) },
       agentSkill: { findMany: vi.fn(async () => []) },
       scratchpadItem: { findMany: vi.fn(async () => []) },
@@ -3192,6 +3197,7 @@ description: Prepare standup notes
       userModelCredential: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
       deploymentSettings: { findUnique: vi.fn(async () => null) },
       secret: {
+        findMany: vi.fn(async () => []),
         findFirst: vi.fn(async () => ({ id: "fixture-secret", ciphertext: "fixture-ciphertext" })),
         findUnique: vi.fn(async () => null),
       },

@@ -948,6 +948,17 @@ describe("secret request dismissal", () => {
     expect(h.answerRunInput).toHaveBeenCalledWith(expect.objectContaining({ answer: "", fields }));
   });
 
+  it("passes a login answered without saving it on", async () => {
+    const h = setup(true);
+    const fields = [{ label: "Password", value: "fake-password-1", hidden: true }];
+    const { response } = await h.send({ answer: "", fields, remember: false });
+
+    expect(response.status).toBe(200);
+    expect(h.answerRunInput).toHaveBeenCalledWith(
+      expect.objectContaining({ fields, remember: false }),
+    );
+  });
+
   it("reports a dismissal the card no longer accepts as a conflict", async () => {
     const h = setup(false);
     const { response } = await h.send({ answer: "", dismiss: true });
@@ -974,6 +985,16 @@ describe("secret request dismissal", () => {
     ["fields without hidden", { answer: "", fields: [{ label: "Code", value: "x" }] }],
     ["a dismissal during a call", { answer: "", clientNonce: "call:call-1:x", dismiss: true }],
     ["an empty answer", { answer: "" }],
+    ["not saving an answer that isn't a login", { answer: "123456", remember: false }],
+    ["not saving a dismissal", { answer: "", dismiss: true, remember: false }],
+    [
+      "remember true",
+      {
+        answer: "",
+        fields: [{ label: "Password", value: "x", hidden: true }],
+        remember: true,
+      },
+    ],
   ])("rejects %s before it reaches the run", async (_name, json) => {
     const h = setup(true);
     const { response } = await h.send(json);

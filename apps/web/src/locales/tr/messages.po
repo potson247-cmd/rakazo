@@ -1668,6 +1668,7 @@ msgstr "Çalıştırılacak kod içeriyor"
 msgid "Context limit"
 msgstr "Bağlam sınırı"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -5022,6 +5023,10 @@ msgstr ""
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "Çalışma alanını kaydedin ve güncel yazılımı yükleyin."
+
+#: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "Kasaya kaydet"
 
 #: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx

@@ -47,6 +47,7 @@ import {
   commandCredentialRedactions,
   loadBotCommandEnvironment,
   loadLoginPasswordRedactions,
+  loadRunLoginRedactions,
 } from "./bot-secrets.js";
 import { createBrowserProvider } from "./browser-provider-factory.js";
 import { agentConnectionTools, builtinAgentTools } from "./builtin-tools.js";
@@ -416,6 +417,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           initialBotCommandEnvironment,
           savedLoginPasswordRedactions,
           purchaseRedactions,
+          runLoginRedactions,
         ] = await Promise.all([
           deps.prisma.bot.findUniqueOrThrow({
             where: { id: run.botId },
@@ -453,6 +455,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           loadBotCommandEnvironment(deps.prisma, deps.secretStore, run),
           loadLoginPasswordRedactions(deps.prisma, deps.secretStore, run),
           deps.paymentWallet ? loadPurchaseRedactions(deps, run) : [],
+          loadRunLoginRedactions(deps.prisma, deps.secretStore, run, run.id),
         ]);
         const historySearchBeforeSeq =
           contextStrategy !== "current" && run.sourceMessageId
@@ -469,7 +472,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
         runSecrets.push(...commandCredentialRedactions(initialBotCommandEnvironment));
         // A login filled in an earlier run may still be on its page, and anything this run reads
         // or is given may contain it, so every run hides its saved passwords before the model runs.
-        runSecrets.push(...savedLoginPasswordRedactions, ...purchaseRedactions);
+        runSecrets.push(
+          ...savedLoginPasswordRedactions,
+          ...purchaseRedactions,
+          ...runLoginRedactions,
+        );
         const agentEnvironmentInstruction = formatAgentEnvironmentInstruction(
           initialBotCommandEnvironment,
         );

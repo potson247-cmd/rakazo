@@ -1668,6 +1668,7 @@ msgstr "Bevat code om uit te voeren"
 msgid "Context limit"
 msgstr "Contextlimiet"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -5022,6 +5023,10 @@ msgstr "Nieuwe waarde opslaan"
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "Sla de werkruimte op en installeer de huidige software."
+
+#: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "Opslaan in kluis"
 
 #: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx

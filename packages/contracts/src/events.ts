@@ -130,6 +130,8 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     answer: z.string().optional(),
     /** A secret request the user dismissed instead of answering. */
     dismissed: z.literal(true).optional(),
+    /** A login the user used for this run only instead of saving it. */
+    remembered: z.literal(false).optional(),
     actions: z
       .array(
         z.object({

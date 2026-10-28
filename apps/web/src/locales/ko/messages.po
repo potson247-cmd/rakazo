@@ -1668,6 +1668,7 @@ msgstr "실행할 코드 포함"
 msgid "Context limit"
 msgstr "컨텍스트 한도"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -5022,6 +5023,10 @@ msgstr ""
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "작업 공간을 저장하고 최신 소프트웨어를 설치합니다."
+
+#: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "보관함에 저장"
 
 #: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx

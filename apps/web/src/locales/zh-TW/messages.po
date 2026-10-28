@@ -1669,6 +1669,7 @@ msgstr "包含可執行的程式碼"
 msgid "Context limit"
 msgstr "上下文長度限制"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -5023,6 +5024,10 @@ msgstr "儲存新值"
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "儲存工作空間並安裝最新軟體。"
+
+#: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "儲存到保管庫"
 
 #: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx

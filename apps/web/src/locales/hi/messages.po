@@ -1668,6 +1668,7 @@ msgstr "चलाने योग्य कोड है"
 msgid "Context limit"
 msgstr "कॉन्टेक्स्ट सीमा"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -5022,6 +5023,10 @@ msgstr ""
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "कार्यक्षेत्र सहेजें और नवीनतम सॉफ़्टवेयर इंस्टॉल करें।"
+
+#: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "वॉल्ट में सहेजें"
 
 #: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx

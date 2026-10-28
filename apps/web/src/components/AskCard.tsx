@@ -14,9 +14,9 @@ import {
   resolveAskChoice,
   selectedAskActionLabel,
 } from "@rakazo/core";
-import { Button, Input, Textarea } from "@rakazo/ui-web";
+import { Button, Input, Label, Switch, Textarea } from "@rakazo/ui-web";
 import { Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
 import { BuiCard } from "./ai/primitives";
@@ -32,8 +32,9 @@ function formatAnsweredState(
   outcome?: "created" | "cancelled",
   actions?: AskBlock["actions"],
   dismissed?: boolean,
+  remembered?: false,
 ): string {
-  if (secret) return dismissed ? t`Dismissed` : t`Saved`;
+  if (secret) return dismissed ? t`Dismissed` : remembered === false ? t`Sent` : t`Saved`;
   if (!answer) return t`Answered`;
   if (!approval) return answer === "approved" ? t`Sent` : selectedAskActionLabel(answer, actions);
   if (outcome === "created") return t`Created`;
@@ -81,8 +82,8 @@ export function AskCard({
   block: AskBlock;
   canAnswer: boolean;
   canDismiss: boolean;
-  /** A login card answers with its fields and an empty `text`. */
-  onAnswer: (text: string, fields?: LoginFieldInput[]) => Promise<void>;
+  /** A login card answers with its fields and an empty `text`; `remember` false uses it once. */
+  onAnswer: (text: string, fields?: LoginFieldInput[], remember?: false) => Promise<void>;
   /** Turns down a secret request without a value. */
   onDismiss: () => Promise<void>;
 }) {
@@ -91,9 +92,12 @@ export function AskCard({
   const [answer, setAnswer] = useState(block.instructionUpdate?.after ?? "");
   const [dismissed, setDismissed] = useState(false);
   const [acceptedAnswer, setAcceptedAnswer] = useState<string>();
+  const [acceptedRemembered, setAcceptedRemembered] = useState<false>();
   const [undone, setUndone] = useState(false);
   const emptyLogin = () => loginCardFields(block.loginFields);
   const [login, setLogin] = useState(emptyLogin);
+  const [remember, setRemember] = useState(true);
+  const rememberId = useId();
   const [secretField, setSecretField] = useState<HTMLInputElement | null>(null);
   const [pastedLines, setPastedLines] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -102,6 +106,7 @@ export function AskCard({
   const answered = block.status === "answered" || acceptedAnswer !== undefined || dismissed;
   const displayedAnswer = block.status === "answered" ? block.answer : acceptedAnswer;
   const displayedDismissed = block.status === "answered" ? block.dismissed : dismissed;
+  const displayedRemembered = block.status === "answered" ? block.remembered : acceptedRemembered;
   const approvalActions = isApprovalAskBlock(block) ? block.actions : undefined;
   const askActions = block.actions;
   const displayActions = block.instructionUpdate
@@ -175,7 +180,9 @@ export function AskCard({
       setPastedLines(false);
     }
     try {
-      await onAnswer(submitValue, fields);
+      if (fields && !remember) await onAnswer(submitValue, fields, false);
+      else await onAnswer(submitValue, fields);
+      if (fields && !remember) setAcceptedRemembered(false);
       setAcceptedAnswer(secretInput ? "" : submitValue);
     } catch (err) {
       // A secret answer's failure may echo the secret, so never show its message.
@@ -342,6 +349,7 @@ export function AskCard({
                 approvalActions?.find((action) => action.id === displayedAnswer)?.outcome,
                 askActions,
                 displayedDismissed,
+                displayedRemembered,
               )}
         </div>
       ) : !canAnswer ? (
@@ -432,12 +440,36 @@ export function AskCard({
               <Trans>Clear</Trans>
             </Button>
           ) : null}
+          {loginInput ? (
+            <div className="mt-1 flex items-center gap-2">
+              <Switch
+                id={rememberId}
+                size="sm"
+                checked={remember}
+                disabled={submitting}
+                onCheckedChange={setRemember}
+              />
+              <Label htmlFor={rememberId} className="text-[13px] font-normal text-muted-foreground">
+                <Trans>Save to Vault</Trans>
+              </Label>
+            </div>
+          ) : null}
           <div className="flex gap-2">
             <Button
               type="submit"
               disabled={(loginInput ? !loginReady : answer.length === 0) || submitting}
             >
-              {pendingAction === "submit" ? <Trans>Saving…</Trans> : <Trans>Save</Trans>}
+              {loginInput && !remember ? (
+                pendingAction === "submit" ? (
+                  <Trans>Sending…</Trans>
+                ) : (
+                  <Trans>Continue</Trans>
+                )
+              ) : pendingAction === "submit" ? (
+                <Trans>Saving…</Trans>
+              ) : (
+                <Trans>Save</Trans>
+              )}
             </Button>
             {canDismiss ? (
               <Button

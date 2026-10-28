@@ -181,6 +181,7 @@ const MessageBubbleContent = memo(function MessageBubbleContent({
     answer: string,
     fields?: readonly LoginFieldInput[],
     dismiss?: boolean,
+    remember?: false,
   ) => Promise<void>;
   onOpenBot: (botId: string, name: string) => void;
   onOpenComputer: (botId: string, name: string) => void;
@@ -234,7 +235,9 @@ const MessageBubbleContent = memo(function MessageBubbleContent({
           actionProps={actionProps}
           canAnswer={canAnswer}
           canDismiss={canDismiss}
-          onAnswer={(answer, fields) => onAnswer(message, answer, fields)}
+          onAnswer={(answer, fields, remember) =>
+            onAnswer(message, answer, fields, undefined, remember)
+          }
           onDismiss={() => onAnswer(message, "", undefined, true)}
         />
         {appConnectBlocks.map((block, index) => (

@@ -1668,6 +1668,7 @@ msgstr "מכיל קוד להרצה"
 msgid "Context limit"
 msgstr "מגבלת הקשר"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -5022,6 +5023,10 @@ msgstr "שמירת הערך החדש"
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "שמירת סביבת העבודה והתקנת התוכנה העדכנית."
+
+#: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "שמירה בכספת"
 
 #: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx

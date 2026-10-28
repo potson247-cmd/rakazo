@@ -6,7 +6,9 @@ import * as Logging from "@rakazo/logging";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   credentialArgument,
+  encodeRunLogin,
   loadLoginPasswordRedactions,
+  loadRunLoginRedactions,
   normalizeSecretDestination,
   requestWithBotSecret,
   resolveLoginFill,
@@ -51,6 +53,7 @@ async function fixture(auth = destination.auth) {
   const prisma = {
     spaceSettingOverride: ownVault,
     vaultCredential: { findFirst },
+    secret: { findFirst: vi.fn(async () => null) },
   } as unknown as PrismaClient;
   const fetch = vi.fn<typeof globalThis.fetch>(async () => Response.json({ ok: true }));
   const registerRedactions = vi.fn();
@@ -833,6 +836,7 @@ describe("saved website logins", () => {
       prisma: {
         spaceSettingOverride: ownVault,
         vaultCredential: { findFirst, findMany },
+        secret: { findFirst: vi.fn(async () => null) },
       } as unknown as PrismaClient,
     };
   }
@@ -887,6 +891,7 @@ describe("saved website logins", () => {
     );
     expect(await loadLoginPasswordRedactions(prisma, secretStore, scope)).toEqual([]);
     const fill = await resolveLoginFill({
+      runId: "run-1",
       prisma,
       secretStore,
       scope,
@@ -928,17 +933,17 @@ describe("saved website logins", () => {
   it("resolves one field bound to the saved origin with its redactions", async () => {
     const { prisma } = await loginFixture("fake-user@example.test");
     const input = { prisma, secretStore, scope, name: "site_login" };
-    expect(await resolveLoginFill({ ...input, field: "password" })).toEqual({
+    expect(await resolveLoginFill({ runId: "run-1", ...input, field: "password" })).toEqual({
       text: "fake-password-1",
       hidden: true,
       origin: "https://login.example.test",
       redactions: expect.arrayContaining(["fake-password-1", "fake-user@example.test"]),
     });
-    expect(await resolveLoginFill({ ...input, field: "username" })).toMatchObject({
+    expect(await resolveLoginFill({ runId: "run-1", ...input, field: "username" })).toMatchObject({
       text: "fake-user@example.test",
       hidden: false,
     });
-    expect(await resolveLoginFill({ ...input, field: "Password" })).toMatchObject({
+    expect(await resolveLoginFill({ runId: "run-1", ...input, field: "Password" })).toMatchObject({
       text: "fake-password-1",
       hidden: true,
     });
@@ -957,26 +962,35 @@ describe("saved website logins", () => {
     it("fills a field by its label, whatever its case, with whether it is hidden", async () => {
       const { prisma } = await fieldsFixture();
       const input = { prisma, secretStore, scope, name: "site_login" };
-      expect(await resolveLoginFill({ ...input, field: "phone NUMBER" })).toMatchObject({
+      expect(
+        await resolveLoginFill({ runId: "run-1", ...input, field: "phone NUMBER" }),
+      ).toMatchObject({
         text: "+1 555 0100",
         hidden: true,
       });
-      expect(await resolveLoginFill({ ...input, field: "ID number" })).toMatchObject({
+      expect(
+        await resolveLoginFill({ runId: "run-1", ...input, field: "ID number" }),
+      ).toMatchObject({
         text: "fake-id-1234",
         hidden: false,
       });
       // A bot that still says username and password gets the first visible and hidden fields.
-      expect(await resolveLoginFill({ ...input, field: "username" })).toMatchObject({
-        text: "fake-id-1234",
-      });
-      expect(await resolveLoginFill({ ...input, field: "password" })).toMatchObject({
-        text: "+1 555 0100",
-      });
+      expect(await resolveLoginFill({ runId: "run-1", ...input, field: "username" })).toMatchObject(
+        {
+          text: "fake-id-1234",
+        },
+      );
+      expect(await resolveLoginFill({ runId: "run-1", ...input, field: "password" })).toMatchObject(
+        {
+          text: "+1 555 0100",
+        },
+      );
     });
 
     it("names the login's fields, never their values, when the label isn't one of them", async () => {
       const { prisma } = await fieldsFixture();
       const result = await resolveLoginFill({
+        runId: "run-1",
         prisma,
         secretStore,
         scope,
@@ -992,6 +1006,7 @@ describe("saved website logins", () => {
     it("hides every hidden field and the visible ones long enough in the filling run", async () => {
       const { prisma } = await fieldsFixture();
       const result = await resolveLoginFill({
+        runId: "run-1",
         prisma,
         secretStore,
         scope,
@@ -1016,6 +1031,7 @@ describe("saved website logins", () => {
   it("does not redact a short username that would mangle unrelated text", async () => {
     const { prisma } = await loginFixture("ada");
     const resolved = await resolveLoginFill({
+      runId: "run-1",
       prisma,
       secretStore,
       scope,
@@ -1051,6 +1067,7 @@ describe("saved website logins", () => {
     );
     expect(
       await resolveLoginFill({
+        runId: "run-1",
         prisma,
         secretStore,
         scope,
@@ -1062,8 +1079,106 @@ describe("saved website logins", () => {
 
   it("refuses to fill a credential that is not a login", async () => {
     const { input } = await fixture();
-    expect(await resolveLoginFill({ ...input, name: destination.name, field: "password" })).toEqual(
-      { error: "This credential is not a website login." },
+    expect(
+      await resolveLoginFill({
+        runId: "run-1",
+        ...input,
+        name: destination.name,
+        field: "password",
+      }),
+    ).toEqual({ error: "This credential is not a website login." });
+  });
+});
+
+describe("logins kept for one run", () => {
+  const fields = [
+    { label: "Username", value: "run-user@example.test", hidden: false },
+    { label: "Password", value: "run pass!word+1", hidden: true },
+  ];
+
+  async function runLoginFixture(origin = "https://login.example.test") {
+    const encrypted = await secretStore.put(
+      encodeRunLogin(origin, encodeLoginSecret({ fields })),
+      { ...scope, operationId: "test", traceId: "test", signal: new AbortController().signal },
+      { ephemeral: true },
     );
+    const row = { ...scope, kind: "run-login:run-1:site_login", ...encrypted };
+    const matching = (where: Record<string, unknown>) =>
+      Object.entries(where).every(([key, value]) =>
+        value && typeof value === "object" && "startsWith" in value
+          ? String(row[key as keyof typeof row]).startsWith(String(value.startsWith))
+          : row[key as keyof typeof row] === value,
+      );
+    const saved = await secretStore.put(
+      encodeLoginSecret({
+        fields: [{ label: "Password", value: "saved-password-1", hidden: true }],
+      }),
+      { ...scope, operationId: "test", traceId: "test", signal: new AbortController().signal },
+      { recordId: "saved-login" },
+    );
+    return {
+      spaceSettingOverride: { findUnique: vi.fn(async () => null) },
+      secret: {
+        findFirst: vi.fn(async ({ where }) => (matching(where) ? row : null)),
+        findMany: vi.fn(async ({ where }) => (matching(where) ? [row] : [])),
+      },
+      // A saved login under the same name, which this run's login comes before.
+      vaultCredential: {
+        findFirst: vi.fn(async () => ({
+          ...scope,
+          name: "site_login",
+          origin: "https://login.example.test",
+          auth: { type: "login" },
+          ...saved,
+        })),
+      },
+    } as unknown as PrismaClient;
+  }
+
+  it("fills this run's login before a saved one, only in this run", async () => {
+    const prisma = await runLoginFixture();
+    const input = { prisma, secretStore, scope, name: "site_login" };
+    expect(await resolveLoginFill({ ...input, runId: "run-1", field: "Password" })).toEqual({
+      text: "run pass!word+1",
+      hidden: true,
+      origin: "https://login.example.test",
+      redactions: expect.arrayContaining(["run pass!word+1", "run-user@example.test"]),
+    });
+    // Another run of the bot gets the saved login.
+    expect(await resolveLoginFill({ ...input, runId: "run-2", field: "Password" })).toMatchObject({
+      text: "saved-password-1",
+    });
+  });
+
+  it("refuses to fill it off HTTPS", async () => {
+    const prisma = await runLoginFixture("http://192.168.1.20");
+    expect(
+      await resolveLoginFill({
+        prisma,
+        secretStore,
+        scope,
+        runId: "run-1",
+        name: "site_login",
+        field: "Password",
+      }),
+    ).toEqual({
+      error: "Website logins can only be filled on an HTTPS origin.",
+    });
+  });
+
+  it("hides it from the start of its run in the forms a saved login is hidden in", async () => {
+    const prisma = await runLoginFixture();
+    const redactions = await loadRunLoginRedactions(prisma, secretStore, scope, "run-1");
+    const password = "run pass!word+1";
+    const forms = [
+      password,
+      encodeURIComponent(password),
+      new URLSearchParams({ v: password }).toString().slice(2),
+      Buffer.from(password).toString("base64"),
+      "run-user@example.test",
+    ];
+    const redacted = redactSecrets(forms.join("\n"), redactions);
+    for (const form of forms) expect(redacted).not.toContain(form);
+    expect(await loadRunLoginRedactions(prisma, secretStore, scope, "run-2")).toEqual([]);
   });
 });

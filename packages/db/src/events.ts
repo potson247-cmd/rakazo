@@ -274,6 +274,8 @@ export interface AnswerRunInput {
   fields?: LoginFieldInput[];
   /** A login card's answer from apps that predate `fields`; `answer` carries its password. */
   username?: string;
+  /** Only for a login card: false uses the login for this run only instead of saving it. */
+  remember?: false;
   /** Turns down a pending secret request; only the run's user can, and nothing is stored. */
   dismiss?: boolean;
 }
@@ -322,6 +324,8 @@ export interface RunSecretWriter {
   store(input: {
     botId: string;
     credential?: BotSecretDestination;
+    /** False for a login card answered with "Save to Vault" off. */
+    remember: boolean;
     runId: string;
     userId: string;
     spaceId: string;
@@ -831,6 +835,7 @@ async function commitAnswerRunInput(
   const login = loginAsk ? loginAnswerValue(pendingAsk.loginFields, input) : undefined;
   // Login fields belong only to a login card, which cannot be saved without them.
   if (loginAsk ? !login : input.username !== undefined || input.fields !== undefined) return null;
+  if (input.remember !== undefined && !loginAsk) return null;
   if (secretAsk && input.answer.length > BOT_SECRET_VALUE_MAX_LENGTH)
     throw new AnswerTooLongError();
   let approvalEffect: { id: string; kind: string; request: Prisma.JsonValue } | null = null;
@@ -984,6 +989,7 @@ async function commitAnswerRunInput(
     await runSecretWriter!.store({
       botId: run.botId,
       credential: pendingAsk.credential,
+      remember: input.remember !== false,
       runId: input.runId,
       userId: run.userId,
       spaceId: input.spaceId,
@@ -1026,6 +1032,7 @@ async function commitAnswerRunInput(
           status: "answered" as const,
           answer: recordedAnswer,
           ...(dismissed ? { dismissed: true as const } : {}),
+          ...(input.remember === false ? { remembered: false as const } : {}),
           ...(editedInstructions !== undefined && pendingAsk.instructionUpdate
             ? {
                 instructionUpdate: { ...pendingAsk.instructionUpdate, after: editedInstructions },

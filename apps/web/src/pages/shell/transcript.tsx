@@ -114,6 +114,7 @@ export const Transcript = memo(function Transcript({
     text: string,
     fields?: LoginFieldInput[],
     dismiss?: boolean,
+    remember?: false,
   ) => Promise<void>;
   onReply: (message: ThreadMessage) => void;
   onMarkUnread: (message: ThreadMessage) => void;
