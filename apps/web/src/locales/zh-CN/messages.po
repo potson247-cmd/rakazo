@@ -3363,6 +3363,10 @@ msgstr "上次检查 {0}：有变化"
 msgid "Last check {0}: no changes"
 msgstr "上次检查 {0}：无变化"
 
+#: src/components/AskCard.tsx
+msgid "Lasting rules are in Settings → Approvals."
+msgstr "长期规则在设置 → 审批。"
+
 #: src/components/DesktopUpdates.tsx
 msgid "Later"
 msgstr ""

@@ -414,6 +414,38 @@ describe("thread cards", () => {
     },
   );
 
+  it("points an open approval at Settings and stays quiet elsewhere", () => {
+    const hint = "Lasting rules are in Settings → Approvals.";
+    renderAsk(
+      {
+        approvalEffectId: "effect-1",
+        actions: [
+          { id: "allow", label: "Allow once" },
+          { id: "deny", label: "Deny" },
+        ],
+      },
+      true,
+    );
+    expect(container.textContent).toContain(hint);
+
+    renderAsk({}, true);
+    expect(container.textContent).not.toContain(hint);
+
+    renderAsk(
+      {
+        approvalEffectId: "effect-1",
+        status: "answered",
+        answer: "deny",
+        actions: [
+          { id: "allow", label: "Allow once" },
+          { id: "deny", label: "Deny" },
+        ],
+      },
+      true,
+    );
+    expect(container.textContent).not.toContain(hint);
+  });
+
   // The iOS message menu hosts each bubble without a definite width, so a percentage width
   // resolves against the card's own cap instead of the message column and overflows the screen.
   it.each([

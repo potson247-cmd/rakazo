@@ -349,36 +349,43 @@ export function AskCard({
           <Trans>No longer active</Trans>
         </div>
       ) : ownerOnly ? null : displayActions?.length ? (
-        <div className="mt-3.5 flex flex-wrap gap-2">
-          {displayActions.map((action) => (
-            <Button
-              key={action.id}
-              variant={action.id === "allow" ? "default" : "outline"}
-              // Wraps long site names like the other cards' buttons.
-              className="h-auto min-h-8 min-w-0 whitespace-normal py-1 text-start"
-              disabled={submitting}
-              onClick={() =>
-                action.id === "edit" && block.instructionUpdate
-                  ? setEditing(true)
-                  : void submitAnswer(action.id)
-              }
-            >
-              {pendingAction === action.id ? (
-                <Trans>Sending…</Trans>
-              ) : action.id === "edit" ? (
-                action.label
-              ) : block.instructionUpdate ? (
-                action.id === "allow" ? (
-                  t`Apply`
+        <>
+          <div className="mt-3.5 flex flex-wrap gap-2">
+            {displayActions.map((action) => (
+              <Button
+                key={action.id}
+                variant={action.id === "allow" ? "default" : "outline"}
+                // Wraps long site names like the other cards' buttons.
+                className="h-auto min-h-8 min-w-0 whitespace-normal py-1 text-start"
+                disabled={submitting}
+                onClick={() =>
+                  action.id === "edit" && block.instructionUpdate
+                    ? setEditing(true)
+                    : void submitAnswer(action.id)
+                }
+              >
+                {pendingAction === action.id ? (
+                  <Trans>Sending…</Trans>
+                ) : action.id === "edit" ? (
+                  action.label
+                ) : block.instructionUpdate ? (
+                  action.id === "allow" ? (
+                    t`Apply`
+                  ) : (
+                    t`Dismiss`
+                  )
                 ) : (
-                  t`Dismiss`
-                )
-              ) : (
-                approvalActionLabel(action.id, action.label, action.outcome, block.site)
-              )}
-            </Button>
-          ))}
-        </div>
+                  approvalActionLabel(action.id, action.label, action.outcome, block.site)
+                )}
+              </Button>
+            ))}
+          </div>
+          {approvalActions && !block.instructionUpdate ? (
+            <p className="mt-3 text-[13px] text-muted-foreground">
+              <Trans>Lasting rules are in Settings → Approvals.</Trans>
+            </p>
+          ) : null}
+        </>
       ) : secretInput ? (
         <form
           className="mt-3.5 flex flex-col gap-2"

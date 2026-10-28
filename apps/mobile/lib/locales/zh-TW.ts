@@ -1029,6 +1029,7 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
   "Always allow this tool": "一律允許此工具",
   "Always allow {site}": "一律允許 {site}",
   Approvals: "核准",
+  "Lasting rules are in Settings → Approvals.": "長期規則在設定 → 核准。",
   Rules: "規則",
   Ask: "詢問",
   Auto: "自動",

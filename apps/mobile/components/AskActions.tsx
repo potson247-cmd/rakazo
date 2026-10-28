@@ -1,4 +1,5 @@
 import { BOT_INSTRUCTIONS_MAX_LENGTH } from "@rakazo/contracts";
+import { typeScale } from "@rakazo/ui-tokens";
 import { useState } from "react";
 import type { ViewProps } from "react-native";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
@@ -129,6 +130,11 @@ export function AskActions({
           );
         })}
       </View>
+      {approval && instructions === undefined ? (
+        <Text style={{ color: tokens.mutedForeground, ...typeScale.caption }}>
+          {t("Lasting rules are in Settings → Approvals.")}
+        </Text>
+      ) : null}
     </View>
   );
 }

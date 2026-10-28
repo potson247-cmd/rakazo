@@ -350,6 +350,57 @@ it("letters question options and fills them only on hover", async () => {
   expect(option.querySelector("[aria-hidden]")?.textContent).toBe("B");
 });
 
+it("points an open approval at Settings → Approvals", async () => {
+  const hint = "Lasting rules are in Settings → Approvals.";
+  await render({
+    kind: "ask",
+    approvalEffectId: "effect-1",
+    text: "Send it?",
+    status: "pending",
+    actions: [
+      { id: "allow", label: "Allow once" },
+      { id: "always", label: "Always allow this tool" },
+      { id: "deny", label: "Deny" },
+    ],
+  });
+  expect(container.textContent).toContain(hint);
+
+  await render({
+    kind: "ask",
+    text: "Which city?",
+    status: "pending",
+    actions: [{ id: "paris", label: "Paris" }],
+  });
+  expect(container.textContent).not.toContain(hint);
+
+  await render({
+    kind: "ask",
+    approvalEffectId: "effect-1",
+    text: "Update instructions?",
+    status: "pending",
+    instructionUpdate: { botId: "bot-1", before: "old", after: "new", reason: "clearer" },
+    actions: [
+      { id: "allow", label: "Apply" },
+      { id: "deny", label: "Dismiss" },
+    ],
+  });
+  expect(container.textContent).not.toContain(hint);
+
+  await render({
+    kind: "ask",
+    approvalEffectId: "effect-1",
+    text: "Send it?",
+    status: "answered",
+    answer: "deny",
+    actions: [
+      { id: "allow", label: "Allow once" },
+      { id: "deny", label: "Deny" },
+    ],
+  });
+  expect(container.textContent).toContain("Denied");
+  expect(container.textContent).not.toContain(hint);
+});
+
 it("sizes approval buttons like the other card buttons", async () => {
   await render({
     kind: "ask",

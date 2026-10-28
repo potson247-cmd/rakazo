@@ -3363,6 +3363,10 @@ msgstr "Son kontrol {0}: değişiklik var"
 msgid "Last check {0}: no changes"
 msgstr "Son kontrol {0}: değişiklik yok"
 
+#: src/components/AskCard.tsx
+msgid "Lasting rules are in Settings → Approvals."
+msgstr "Kalıcı kurallar Ayarlar → Onaylar'da."
+
 #: src/components/DesktopUpdates.tsx
 msgid "Later"
 msgstr ""

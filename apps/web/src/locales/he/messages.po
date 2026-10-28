@@ -3363,6 +3363,10 @@ msgstr ""
 msgid "Last check {0}: no changes"
 msgstr ""
 
+#: src/components/AskCard.tsx
+msgid "Lasting rules are in Settings → Approvals."
+msgstr "כללים קבועים נמצאים בהגדרות → אישורים."
+
 #: src/components/DesktopUpdates.tsx
 msgid "Later"
 msgstr "מאוחר יותר"

@@ -16,6 +16,8 @@ export const DE_MESSAGES: Record<string, string> = {
   "Retry screen": "Bildschirm erneut verbinden",
   "The screen connection closed.": "Die Bildschirmverbindung wurde geschlossen.",
   Approvals: "Freigaben",
+  "Lasting rules are in Settings → Approvals.":
+    "Dauerhafte Regeln stehen unter Einstellungen → Freigaben.",
   Rules: "Regeln",
   "Never ask": "Nie fragen",
   Auto: "Auto",

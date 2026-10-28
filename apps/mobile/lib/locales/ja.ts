@@ -14,6 +14,7 @@ export const JA_MESSAGES: Record<string, string> = {
   "Retry screen": "画面を再接続",
   "The screen connection closed.": "画面の接続が閉じられました。",
   Approvals: "承認",
+  "Lasting rules are in Settings → Approvals.": "永続的なルールは「設定 → 承認」にあります。",
   Rules: "ルール",
   "Never ask": "確認しない",
   Auto: "自動",

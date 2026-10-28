@@ -288,10 +288,7 @@ export async function gateToolCall(
   if (plan === "deny") {
     return {
       result: {
-        error:
-          approvalResolved.decision === "deny"
-            ? `${name} is blocked in this space${blockingRuleSuffix(approvalResolved)}. Don't try it another way; tell the user it's blocked.`
-            : `${name} needs the owner's approval because it could have been asked for by someone else, and this space never asks. Don't retry; tell the user.`,
+        error: deniedToolMessage(name, approvalResolved),
       },
     };
   }
@@ -485,6 +482,20 @@ export async function gateToolCall(
     for (const trust of connectorTrusts) trusted.add(trust);
   }
   return { call };
+}
+
+/** The user edits lasting approval rules here. The agent relays this; it does not write rules. */
+const APPROVAL_SETTINGS_HINT = "Lasting rules are in Settings → Approvals.";
+
+function deniedToolMessage(
+  name: string,
+  resolved: ReturnType<typeof resolveActionApprovalForTools>,
+): string {
+  const reason =
+    resolved.decision === "deny"
+      ? `${name} is blocked in this space${blockingRuleSuffix(resolved)}. Don't try it another way; tell the user it's blocked.`
+      : `${name} needs the owner's approval because it could have been asked for by someone else, and this space never asks. Don't retry; tell the user.`;
+  return `${reason} Tell the user: ${APPROVAL_SETTINGS_HINT}`;
 }
 
 function blockingRuleSuffix(resolved: ReturnType<typeof resolveActionApprovalForTools>): string {

@@ -942,6 +942,7 @@ describe("connector read-only metadata and approval enforcement", () => {
       expect(f.execute).not.toHaveBeenCalled();
       expect(f.pauseRunForInput).not.toHaveBeenCalled();
       expect(JSON.stringify(f.results[0])).toContain("never asks");
+      expect(JSON.stringify(f.results[0])).toContain("Lasting rules are in Settings → Approvals.");
     });
 
     it("refuses a blocked tool in Never ask without asking or running it", async () => {
@@ -955,6 +956,7 @@ describe("connector read-only metadata and approval enforcement", () => {
       expect(f.execute).not.toHaveBeenCalled();
       expect(f.pauseRunForInput).not.toHaveBeenCalled();
       expect(JSON.stringify(f.results[0])).toContain("blocked");
+      expect(JSON.stringify(f.results[0])).toContain("Lasting rules are in Settings → Approvals.");
     });
 
     it("asks before an unlisted write in Ask mode", async () => {
@@ -2483,6 +2485,9 @@ describe("user_computer_shell", () => {
       error: expect.stringContaining(
         'is blocked in this space by the saved rule "User computer shell".',
       ),
+    });
+    expect(f.results[0]).toEqual({
+      error: expect.stringContaining("Lasting rules are in Settings → Approvals."),
     });
     expect(f.pauseRunForInput).not.toHaveBeenCalled();
   });
