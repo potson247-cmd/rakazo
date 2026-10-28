@@ -98,9 +98,6 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await expect(view.getByRole("textbox")).toHaveCount(0);
   await expect(view.getByRole("status", { name: "Loading…", exact: true })).toHaveCount(0);
   const peerTranscript = view.getByTestId("peer-conversation-transcript");
-  await peerTranscript.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-  });
   await expect
     .poll(() =>
       peerTranscript.evaluate(

@@ -12,7 +12,7 @@ import {
   Spinner,
 } from "@rakazo/ui-web";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useSpaceQueries } from "../lib/query";
 import { rpc } from "../lib/rpc";
 
@@ -65,6 +65,13 @@ export function PeerMessagesOverlay({
     return peerConversations(history.data).find((entry) => entry.peerBotId === peerBotId) ?? null;
   }, [history.data, peerBotId]);
   const peerBotName = conversation?.peerBotName ?? initialPeerBotName;
+  const transcriptRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (transcriptRef.current) {
+      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+    }
+  }, [conversation?.messages]);
 
   return (
     <Dialog
@@ -129,6 +136,7 @@ export function PeerMessagesOverlay({
           </div>
         ) : (
           <div
+            ref={transcriptRef}
             data-testid="peer-conversation-transcript"
             className="rk-scroll flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-5 md:px-7 md:py-6"
           >
