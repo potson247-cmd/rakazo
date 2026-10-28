@@ -159,7 +159,7 @@ describe("OAuth credential retirement on terminal refresh rejection", () => {
     vi.unstubAllGlobals();
   });
 
-  it("deletes the credential and leaves the provider disconnected after invalid_grant", async () => {
+  it("keeps the credential and the provider connected after invalid_grant", async () => {
     // The real pi codex refresh posts to the token endpoint; a 400 body with a
     // terminal marker surfaces in the thrown error's message.
     const fetchMock = vi.fn(
@@ -177,17 +177,17 @@ describe("OAuth credential retirement on terminal refresh rejection", () => {
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(state.credentials).toEqual([]);
-    expect(state.preferences).toEqual([]);
-    expect(state.secrets).toEqual([]);
-
-    // Catalog machinery reports the provider as disconnected, and the next run
-    // gets the readable not-connected error instead of another refresh crash.
-    const auth = await modelCredentialAuthKindsForSpace(prisma, { load: vi.fn() }, SCOPE);
-    expect(auth.byProvider[PROVIDER]).toBeUndefined();
-    await expect(executor.resolveConnectedModel(SCOPE, PROVIDER, MODEL_ID)).rejects.toThrow(
-      "Connect that model provider first",
+    // A rejected refresh never deletes the owner's connection or model choices:
+    // signing in again renews this same connection in place.
+    expect(state.credentials).toHaveLength(1);
+    expect(state.preferences).toHaveLength(1);
+    expect(state.secrets).toHaveLength(1);
+    const auth = await modelCredentialAuthKindsForSpace(
+      prisma,
+      { load: vi.fn(async () => expiredOAuthPlaintext()) },
+      SCOPE,
     );
+    expect(auth.byProvider[PROVIDER]).toBe("oauth");
   });
 
   it("keeps the credential when the refresh failure is transient", async () => {

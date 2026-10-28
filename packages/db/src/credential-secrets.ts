@@ -35,16 +35,18 @@ export async function deleteUnreferencedCredentialSecret(
 }
 
 /**
- * Drop a model credential whose stored OAuth material is dead, along with the
- * secret row nothing else references.
+ * Confirm that a model credential's stored OAuth material is the material that
+ * just failed a terminal refresh. The credential, its secret and every Space's
+ * model choice are KEPT: the owner fixes it by signing in again, which renews
+ * this connection in place. Returns true when the failure is confirmed (the run
+ * fails without retrying), false when newer material won a race.
  *
- * Two guards keep a stale failure from deleting newer material:
+ * Two guards keep a stale failure from being reported against newer material:
  * - `secretId`: a reconnect swaps the credential to a fresh secret row, so a
  *   mismatch means the retired material is already gone.
  * - `matchesFailedSecret`: a concurrent successful refresh rewrites the same
- *   secret row in place. The serializable delete rechecks its pointer and
- *   ciphertext and skips on mismatch; a secret row that is already gone has
- *   nothing newer to protect, so the credential is still deleted.
+ *   secret row in place. The serializable check rereads its pointer and
+ *   ciphertext and reports false on mismatch.
  */
 export async function retireModelCredential(
   prisma: Pick<PrismaClient, "$transaction">,
@@ -98,13 +100,11 @@ export async function retireModelCredential(
           )
             return false;
         }
-        // Its own model and the role rows pinned to it go with it.
-        await tx.userModelCredential.delete({ where: { id: credential.id } });
-        await deleteUnreferencedCredentialSecret(tx, {
-          credentialKind: "model",
-          credentialId: credential.id,
-          secretId: credential.secretId,
-        });
+        // Keep the connection, its secret and every Space's model choice. A
+        // refresh the provider rejected (revoked grant, expired session,
+        // account mismatch) is fixed by signing in again, which renews this
+        // same connection in place. Deleting it here silently disconnected
+        // every bot on the provider and threw away the owner's model setup.
         return true;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
