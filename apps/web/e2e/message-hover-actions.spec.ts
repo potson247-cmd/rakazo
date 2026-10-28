@@ -109,6 +109,8 @@ async function expectHeaderAboveHoveredRow(page: Page, testInfo: TestInfo, row: 
 
   try {
     expect(placement.overlapsHeader).toBe(true);
+    // Rows keep their rails and avatars layered among themselves, never over the header.
+    await expect(page.getByTestId("transcript")).toHaveCSS("isolation", "isolate");
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     // The header's empty gutter passes pointer events through to keep the row hovered.
     await page.mouse.move(placement.hoverPoint.x, placement.hoverPoint.y);
