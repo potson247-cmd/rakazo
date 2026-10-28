@@ -4,7 +4,7 @@ import path from "node:path";
 import { createRouterClient } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import type { ManagedConnectorProvider } from "@rakazo/adapter-kit";
-import { SecretStoreUnavailableError } from "@rakazo/adapter-kit";
+import { ConnectorAuthUnavailableError, SecretStoreUnavailableError } from "@rakazo/adapter-kit";
 import type { McpOAuthSummary } from "@rakazo/adapters";
 import * as adapters from "@rakazo/adapters";
 import {
@@ -24,7 +24,11 @@ import {
   serializeModelSecret,
 } from "@rakazo/adapters";
 import type { Actor, Bot, ProductEvent } from "@rakazo/contracts";
-import { MODEL_KEY_FORMAT_ERROR, REPLY_QUOTE_MAX_LENGTH } from "@rakazo/contracts";
+import {
+  CONNECTOR_AUTH_UNAVAILABLE,
+  MODEL_KEY_FORMAT_ERROR,
+  REPLY_QUOTE_MAX_LENGTH,
+} from "@rakazo/contracts";
 import { openScreenCapability } from "@rakazo/core/node/screen-capability";
 import type { PrismaClient } from "@rakazo/db";
 import { AnswerTooLongError, runProviderTransaction } from "@rakazo/db";
@@ -2597,6 +2601,69 @@ describe("connections.begin", () => {
       await holder;
       vi.useRealTimers();
     }
+  });
+
+  it("answers with the connector auth code when the app has no usable sign-in", async () => {
+    const begin = vi.fn().mockRejectedValue(
+      new ConnectorAuthUnavailableError({
+        cause: '400 {"error":{"slug":"ToolRouterV2_NoManagedAuth"}}',
+      }),
+    );
+    const rootUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const tx = {
+      $executeRaw: vi.fn().mockResolvedValue(undefined),
+      connection: {
+        findMany: vi.fn().mockResolvedValue([]),
+        create: vi.fn().mockResolvedValue({ id: "conn-1", status: "pending" }),
+      },
+    };
+    const prisma = {
+      connection: { updateMany: rootUpdateMany },
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(tx)),
+    } as unknown as PrismaClient;
+    const handler = new RPCHandler(
+      createRouter({
+        prisma,
+        connectors: { managed: vi.fn(() => ({ begin })) },
+        env: {
+          defaultProvider: "fake",
+          defaultModel: "fake-model",
+          webOrigin: "http://127.0.0.1:5173",
+          screenProxySecret: "fake-test-secret",
+          sandboxProvider: "fake",
+        },
+        dataDir: "/tmp/rakazo-router-test",
+      } as unknown as RouterDeps),
+    );
+
+    const { response } = await handler.handle(
+      new Request("http://127.0.0.1/rpc/connections/begin", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          json: { connectorId: "composio", provider: "twitter", displayName: "Twitter" },
+        }),
+      }),
+      {
+        prefix: "/rpc",
+        context: {
+          actor: {
+            spaceId: "workspace-1",
+            userId: "user-1",
+            email: "user@rakazo.test",
+            isDeploymentOwner: true,
+          },
+        },
+      },
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toMatchObject({ json: { code: CONNECTOR_AUTH_UNAVAILABLE } });
+    expect(JSON.stringify(body)).not.toContain("ToolRouterV2_NoManagedAuth");
+    expect(rootUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: "error" } }),
+    );
   });
 });
 

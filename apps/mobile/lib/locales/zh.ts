@@ -972,6 +972,7 @@ export const ZH_MESSAGES: Record<string, string> = {
     "启动时出了点问题。请稍后重试。",
   "Your voice provider is out of credit.": "你的语音提供方额度已用完。",
   "Your voice provider key was rejected.": "你的语音提供方拒绝了该密钥。",
+  "This app needs its own sign-in setup to connect.": "此应用需要单独设置登录后才能连接。",
   Billing: "账单",
   "Could not load billing": "无法加载账单",
   "Could not update billing": "无法更新账单",

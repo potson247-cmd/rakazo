@@ -5753,6 +5753,10 @@ msgstr "思考"
 msgid "Thinking: {0}"
 msgstr "思考：{0}"
 
+#: src/lib/user-error.ts
+msgid "This app needs its own sign-in setup to connect."
+msgstr "此應用程式需要單獨設定登入才能連線。"
+
 #: src/pages/shell/agent-import.tsx
 msgid "This backup could not be read."
 msgstr "無法讀取此備份。"

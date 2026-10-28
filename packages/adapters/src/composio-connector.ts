@@ -10,6 +10,7 @@ import type {
   ConnectorTool,
   ManagedConnectorProvider,
 } from "@rakazo/adapter-kit";
+import { ConnectorAuthUnavailableError } from "@rakazo/adapter-kit";
 import { getLogger } from "@rakazo/logging";
 import type { ToolkitDirectoryEntry } from "./composio-catalog-cache.js";
 import {
@@ -604,6 +605,9 @@ export class ComposioConnector implements ComposioProvider {
       if (isNoAuthToolkitError(error)) {
         return { authorizationUrl: null, state: request.provider };
       }
+      if (isNoManagedAuthError(error)) {
+        throw new ConnectorAuthUnavailableError({ cause: sanitizeComposioError(error) });
+      }
       throw new Error(sanitizeComposioError(error));
     }
   }
@@ -952,6 +956,12 @@ export function isNoAuthToolkitError(error: unknown): boolean {
   return (
     message.includes("ToolkitsIsNoAuth") || message.includes("does not require authentication")
   );
+}
+
+/** Composio has no managed OAuth app for the toolkit and the project has no auth config of its own. */
+export function isNoManagedAuthError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("ToolRouterV2_NoManagedAuth");
 }
 
 /**

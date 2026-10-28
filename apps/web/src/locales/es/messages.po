@@ -5752,6 +5752,10 @@ msgstr "Pensando"
 msgid "Thinking: {0}"
 msgstr "Razonamiento: {0}"
 
+#: src/lib/user-error.ts
+msgid "This app needs its own sign-in setup to connect."
+msgstr "Esta app necesita su propia configuración de inicio de sesión para conectarse."
+
 #: src/pages/shell/agent-import.tsx
 msgid "This backup could not be read."
 msgstr "No se pudo leer esta copia de seguridad."

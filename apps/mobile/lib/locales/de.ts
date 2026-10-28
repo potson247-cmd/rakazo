@@ -979,6 +979,8 @@ export const DE_MESSAGES: Record<string, string> = {
     "Beim Starten ist etwas schiefgelaufen. Versuche es in einem Moment erneut.",
   "Your voice provider is out of credit.": "Dein Stimmanbieter hat kein Guthaben mehr.",
   "Your voice provider key was rejected.": "Der Schlüssel deines Stimmanbieters wurde abgelehnt.",
+  "This app needs its own sign-in setup to connect.":
+    "Diese App braucht eine eigene Anmeldeeinrichtung, um sich zu verbinden.",
   Billing: "Abrechnung",
   "Could not load billing": "Abrechnung konnte nicht geladen werden",
   "Could not update billing": "Abrechnung konnte nicht aktualisiert werden",

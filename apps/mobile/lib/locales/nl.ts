@@ -971,6 +971,8 @@ export const NL_MESSAGES: Record<string, string> = {
     "Er ging iets mis tijdens het opstarten. Probeer het over een moment opnieuw.",
   "Your voice provider is out of credit.": "Je spraakaanbieder heeft geen tegoed meer.",
   "Your voice provider key was rejected.": "Je spraakaanbieder heeft de sleutel geweigerd.",
+  "This app needs its own sign-in setup to connect.":
+    "Deze app heeft een eigen aanmeldconfiguratie nodig om te verbinden.",
   Billing: "Facturering",
   "Could not load billing": "Kan facturering niet laden",
   "Could not update billing": "Kan facturering niet bijwerken",

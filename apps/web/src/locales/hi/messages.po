@@ -5752,6 +5752,10 @@ msgstr "सोच रहा है"
 msgid "Thinking: {0}"
 msgstr "सोच: {0}"
 
+#: src/lib/user-error.ts
+msgid "This app needs its own sign-in setup to connect."
+msgstr "कनेक्ट करने के लिए इस ऐप को अपना साइन-इन सेटअप चाहिए।"
+
 #: src/pages/shell/agent-import.tsx
 msgid "This backup could not be read."
 msgstr "यह बैकअप पढ़ा नहीं जा सका।"

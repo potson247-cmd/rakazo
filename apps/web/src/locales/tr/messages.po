@@ -5752,6 +5752,10 @@ msgstr "Düşünüyor"
 msgid "Thinking: {0}"
 msgstr "Düşünme: {0}"
 
+#: src/lib/user-error.ts
+msgid "This app needs its own sign-in setup to connect."
+msgstr "Bu uygulamanın bağlanması için kendi oturum açma kurulumu gerekiyor."
+
 #: src/pages/shell/agent-import.tsx
 msgid "This backup could not be read."
 msgstr "Bu yedek okunamadı."

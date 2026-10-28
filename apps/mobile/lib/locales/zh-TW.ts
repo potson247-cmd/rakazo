@@ -962,6 +962,7 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
     "啟動時出了點問題。請稍後重試。",
   "Your voice provider is out of credit.": "你的語音供應商額度已用完。",
   "Your voice provider key was rejected.": "你的語音供應商拒絕了該金鑰。",
+  "This app needs its own sign-in setup to connect.": "此應用程式需要單獨設定登入才能連線。",
   Billing: "帳務",
   "Could not load billing": "無法載入帳務資訊",
   "Could not update billing": "無法更新帳務資訊",

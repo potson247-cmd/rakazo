@@ -15,6 +15,7 @@ import {
   filterCatalog,
   isComposioEnabled,
   isNoAuthToolkitError,
+  isNoManagedAuthError,
   mergeConnectedPlugins,
   needsLivePluginSync,
   pickReusableConnection,
@@ -314,6 +315,15 @@ describe("composio tool mapping", () => {
       ),
     ).toBe(true);
     expect(isNoAuthToolkitError(new Error("redirect required"))).toBe(false);
+  });
+
+  it("recognizes toolkits Composio has no managed auth for", () => {
+    const noManagedAuth = new Error(
+      '400 {"error":{"message":"Composio does not manage auth for toolkit twitter and no auth config without required fields is available.","code":4308,"slug":"ToolRouterV2_NoManagedAuth","status":400}}',
+    );
+    expect(isNoManagedAuthError(noManagedAuth)).toBe(true);
+    expect(isNoAuthToolkitError(noManagedAuth)).toBe(false);
+    expect(isNoManagedAuthError(new Error("redirect required"))).toBe(false);
   });
 
   it("collects nested Composio log ids", () => {

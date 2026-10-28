@@ -1010,6 +1010,8 @@ export const RU_MESSAGES: Record<string, string> = {
     "При запуске что-то пошло не так. Попробуйте ещё раз чуть позже.",
   "Your voice provider is out of credit.": "У вашего голосового провайдера закончились кредиты.",
   "Your voice provider key was rejected.": "Ваш голосовой провайдер отклонил ключ.",
+  "This app needs its own sign-in setup to connect.":
+    "Для подключения этому приложению нужна собственная настройка входа.",
   Billing: "Оплата",
   "Could not load billing": "Не удалось загрузить данные об оплате",
   "Could not update billing": "Не удалось обновить оплату",

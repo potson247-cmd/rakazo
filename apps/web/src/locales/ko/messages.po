@@ -5752,6 +5752,10 @@ msgstr "생각 깊이"
 msgid "Thinking: {0}"
 msgstr "사고: {0}"
 
+#: src/lib/user-error.ts
+msgid "This app needs its own sign-in setup to connect."
+msgstr "이 앱을 연결하려면 자체 로그인 설정이 필요합니다."
+
 #: src/pages/shell/agent-import.tsx
 msgid "This backup could not be read."
 msgstr "이 백업을 읽지 못했습니다."

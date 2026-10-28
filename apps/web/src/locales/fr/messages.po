@@ -5752,6 +5752,10 @@ msgstr "Réflexion"
 msgid "Thinking: {0}"
 msgstr "Réflexion : {0}"
 
+#: src/lib/user-error.ts
+msgid "This app needs its own sign-in setup to connect."
+msgstr "Cette app a besoin de sa propre configuration de connexion pour se connecter."
+
 #: src/pages/shell/agent-import.tsx
 msgid "This backup could not be read."
 msgstr "Impossible de lire cette sauvegarde."

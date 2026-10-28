@@ -960,6 +960,8 @@ export const JA_MESSAGES: Record<string, string> = {
     "起動中に問題が発生しました。しばらくしてからもう一度お試しください。",
   "Your voice provider is out of credit.": "音声プロバイダーのクレジットが不足しています。",
   "Your voice provider key was rejected.": "音声プロバイダーのキーが拒否されました。",
+  "This app needs its own sign-in setup to connect.":
+    "このアプリを接続するには、専用のサインイン設定が必要です。",
   Billing: "請求",
   "Could not load billing": "請求情報を読み込めませんでした",
   "Could not update billing": "請求情報を更新できませんでした",
