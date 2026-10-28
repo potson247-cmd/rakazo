@@ -154,6 +154,7 @@ test("GitHub import names the parts it cannot add and waits for confirmation", a
 test("skill packs are browsed and added from the Skills dialog", async ({ page }, testInfo) => {
   await signup(page, `skill-packs-${Date.now()}@rakazo.test`, "password12", "Skill Packs Test");
   await completeOnboarding(page);
+  await page.getByTestId("user-menu-trigger").click();
   await page.getByRole("button", { name: "Skills", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Skills", exact: true });
   await expect(dialog.getByTestId("your-skills").getByText("Interrogate")).toBeVisible();
