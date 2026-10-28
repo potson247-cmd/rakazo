@@ -42,21 +42,21 @@ test("set selection preserves legacy, shapes and photos and persists an explicit
   expect(errors).toEqual([]);
 });
 
-test("new-bot dialog defaults to Rakazo and submits its explicit set", async ({
+test("new-bot dialog defaults to Original and submits its explicit set", async ({
   page,
 }, testInfo) => {
   await page.goto("/e2e/fixtures/avatar-sets.html");
   await page.getByRole("button", { name: "New bot", exact: true }).click();
   const dialog = page.getByTestId("create-bot-dialog");
-  await expect(dialog.getByRole("tab", { name: "Rakazo", exact: true })).toHaveAttribute(
+  await expect(dialog.getByRole("tab", { name: "Original", exact: true })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await expect(dialog.locator(".rakazo-logo-avatar").first()).toBeVisible();
-  await captureScreenshot(page, testInfo, "create-bot-default-rakazo");
+  await expect(dialog.locator(".rakazo-organic-avatar").first()).toBeVisible();
+  await captureScreenshot(page, testInfo, "create-bot-default-original");
   await dialog.getByPlaceholder("Name your Bot").fill("New example");
   await dialog.getByRole("button", { name: "Create", exact: true }).click();
   const created = JSON.parse((await page.getByTestId("created-bot").textContent()) || "{}");
-  expect(created).toMatchObject({ name: "New example", avatarSet: "rakazo" });
-  expect(created).not.toHaveProperty("avatarFamily");
+  expect(created).toMatchObject({ name: "New example", avatarSet: "organic" });
+  expect(created).toHaveProperty("avatarFamily");
 });

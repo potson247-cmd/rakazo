@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { organicAvatarFamily, seededLogoAvatarColor } from "@rakazo/core";
+import { organicAvatarFamily } from "@rakazo/core";
 import { captureScreenshot, completeOnboarding, createBotFromPicker, rpc, signup } from "./helpers";
 
 test("create opens dialog, then empty chat; picker lists bots; sidebar collapses", async ({
@@ -44,11 +44,10 @@ test("create opens dialog, then empty chat; picker lists bots; sidebar collapses
   await expect(create).toBeDisabled();
 
   await name.fill("New Bot");
-  await expect(createDialog.getByRole("tab", { name: "Rakazo", exact: true })).toHaveAttribute(
+  await expect(createDialog.getByRole("tab", { name: "Original", exact: true })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await createDialog.getByRole("tab", { name: "Original", exact: true }).click();
   const wedge = createDialog.getByRole("button", { name: "wedge", exact: true });
   await wedge.click();
   await createDialog.getByRole("button", { name: "Color #10B981", exact: true }).click();
@@ -124,7 +123,6 @@ test("create opens dialog, then empty chat; picker lists bots; sidebar collapses
   await page.getByTestId("create-menu-trigger").click();
   await picker.getByTestId("create-new-bot").click();
   await expect(createDialog).toBeVisible();
-  await createDialog.getByRole("tab", { name: "Original", exact: true }).click();
   await createDialog.getByRole("button", { name: "Shape 3", exact: true }).click();
   const family = Number(
     await createDialog.locator(".rakazo-organic-avatar").first().getAttribute("data-shape-family"),
@@ -136,7 +134,7 @@ test("create opens dialog, then empty chat; picker lists bots; sidebar collapses
   expect(organicAvatarFamily(page.url().split("/").pop()!)).toBe(family);
 });
 
-test("the default logo preview keeps its seeded identity and colour after creation and reload", async ({
+test("the logo preview keeps its identity and colour after creation and reload", async ({
   page,
 }, testInfo) => {
   await signup(page, `preview-colour-${Date.now()}@rakazo.test`, "password12", "Preview Colour");
@@ -144,6 +142,7 @@ test("the default logo preview keeps its seeded identity and colour after creati
   await page.getByTestId("create-menu-trigger").click();
   await page.getByTestId("bot-create-picker").getByTestId("create-new-bot").click();
   const dialog = page.getByTestId("create-bot-dialog");
+  await dialog.getByRole("tab", { name: "Rakazo", exact: true }).click();
   const preview = dialog.locator(".rakazo-logo-avatar").first();
   const colour = (await preview.getAttribute("data-color"))!.toUpperCase();
   await dialog.getByPlaceholder("Name your Bot").fill("Seed preview");
@@ -153,7 +152,6 @@ test("the default logo preview keeps its seeded identity and colour after creati
   await expect(dialog).toBeHidden();
   await expect(page.getByPlaceholder("Message Seed preview")).toBeVisible();
   const id = page.url().split("/").pop()!;
-  expect(colour).toBe(seededLogoAvatarColor(id).toUpperCase());
   await page.reload();
   await expect(page.getByPlaceholder("Message Seed preview")).toBeVisible();
   const bots = await rpc<Array<{ id: string; color: string; avatarSet: string }>>(

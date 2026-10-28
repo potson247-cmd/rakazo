@@ -7,9 +7,9 @@ import {
   ORGANIC_AVATAR_LOOKS,
   organicAvatarFamily,
   organicAvatarSampleIdentity,
-  seededLogoAvatarColor,
 } from "@rakazo/core";
 import {
+  BOT_AVATAR_COLORS,
   BotAvatar,
   Button,
   Dialog,
@@ -62,7 +62,7 @@ export function CreateBotDialog({
     return id;
   });
   const [look, setLook] = useState(() => ({
-    value: seededLogoAvatarColor(previewId),
+    value: pick(BOT_AVATAR_COLORS),
     identity: pick(ORGANIC_IDENTITIES),
   }));
   const [avatarSet, setAvatarSet] = useState<BotAvatarSet>(DEFAULT_NEW_BOT_AVATAR_SET);
